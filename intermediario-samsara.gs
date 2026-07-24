@@ -17,10 +17,11 @@
  *  1. Entra a  https://script.google.com  y crea un proyecto nuevo.
  *  2. Borra lo que venga y pega TODO este archivo.
  *  3. Guarda el token de Samsara con la función guardarTokenSamsara().
- *  4. Guarda el dato de autenticación de NSTech con guardarAuthNstech().
- *  5. Revisa la sección CONFIGURACIÓN de abajo (account_id, mapeo de unidades).
- *  6. Ejecuta  probarUnaVez  y revisa el registro (Ver > Registros).
- *  7. Ejecuta  activarAutomatico  para que corra solo cada 5 minutos.
+ *  4. Guarda el ClientSecret de NSTech con la función guardarSecretNstech().
+ *  5. Revisa la sección CONFIGURACIÓN de abajo (ya viene con tus IDs).
+ *  6. Ejecuta  verJsonParaNstech  para revisar el JSON antes de enviar nada.
+ *  7. Ejecuta  probarUnaVez  y revisa el registro (Ver > Registros).
+ *  8. Ejecuta  activarAutomatico  para que corra solo cada 5 minutos.
  *
  *  IMPORTANTE: nunca escribas tokens directamente en el código de forma
  *  permanente ni los compartas. Se guardan cifrados con las funciones de abajo.
@@ -32,13 +33,16 @@
  *  1) CONFIGURACIÓN  -- rellena esto
  * ========================================================================= */
 
-// Buzón de NSTech donde ellos RECIBEN las posiciones.
-// OJO: "hml" es el ambiente de PRUEBAS (homologación). Cuando NSTech te dé la
-// URL de PRODUCCIÓN, cámbiala aquí.
-const NSTECH_URL = "https://nsapps-hml.nstech.com.br/zeus/api/integra/v1/positions";
+// -- URLs de NSTech (ambiente de PRUEBAS / homologación "hml") --
+// OJO: cuando NSTech te dé las URLs de PRODUCCIÓN, cámbialas aquí (las dos).
+const NSTECH_URL       = "https://nsapps-hml.nstech.com.br/zeus/api/integra/v1/positions";
+const NSTECH_TOKEN_URL = "https://nsapps-hml.nstech.com.br/auth/realms/zeus/protocol/openid-connect/token";
 
-// account_id que te dio NSTech (el mismo del ejemplo de tu cliente).
-const ACCOUNT_ID = "d4c2ce7f-10e3-4394-9168-3278db0e07ed";
+// -- Credenciales de NSTech que NO son secretas (las que te dieron por correo) --
+const ACCOUNT_ID    = "d4c2ce7f-10e3-4394-9168-3278db0e07ed";
+const TECHNOLOGY_ID = "dbab26b4-7a6d-42b4-a557-1e687327dfcc";
+const CLIENT_ID     = "dbab26b4-7a6d-42b4-a557-1e687327dfcc";
+// El CLIENT_SECRET NO va aquí: se guarda cifrado con guardarSecretNstech().
 
 // Endpoint de Samsara. Pedimos gps + encendido + odómetro en una sola llamada.
 const SAMSARA_URL =
@@ -68,12 +72,44 @@ function guardarTokenSamsara() {
   Logger.log("Token de Samsara guardado. Ya puedes borrarlo de esta función.");
 }
 
-function guardarAuthNstech() {
-  // Lo que NSTech pida para autenticar (revisa su documentación). Suele ser un
-  // token tipo "Bearer xxxxx" o una API key. Si aún no lo tienes, pídeselo.
-  const AUTH = "PEGA_AQUI_LA_AUTENTICACION_DE_NSTECH";
-  PropertiesService.getScriptProperties().setProperty("NSTECH_AUTH", AUTH);
-  Logger.log("Autenticación de NSTech guardada. Ya puedes borrarla de esta función.");
+function guardarSecretNstech() {
+  // Pega aquí el ClientSecret que te dio NSTech por correo. Ejecuta la función
+  // una vez, y luego borra el valor. Queda guardado cifrado.
+  const SECRET = "PEGA_AQUI_TU_CLIENT_SECRET_DE_NSTECH";
+  PropertiesService.getScriptProperties().setProperty("NSTECH_SECRET", SECRET);
+  Logger.log("ClientSecret de NSTech guardado. Ya puedes borrarlo de esta función.");
+}
+
+/**
+ * Pide un token de acceso a NSTech (OAuth2 client_credentials / Keycloak).
+ * Devuelve el access_token (texto) o null si algo falla.
+ */
+function obtenerTokenNstech() {
+  const secret = PropertiesService.getScriptProperties().getProperty("NSTECH_SECRET");
+  if (!secret) {
+    Logger.log("ERROR: falta el ClientSecret de NSTech. Ejecuta guardarSecretNstech().");
+    return null;
+  }
+
+  const cuerpo =
+    "grant_type=client_credentials" +
+    "&client_id="     + encodeURIComponent(CLIENT_ID) +
+    "&client_secret=" + encodeURIComponent(secret);
+
+  const resp = UrlFetchApp.fetch(NSTECH_TOKEN_URL, {
+    method: "post",
+    contentType: "application/x-www-form-urlencoded",
+    payload: cuerpo,
+    muteHttpExceptions: true
+  });
+
+  if (resp.getResponseCode() !== 200) {
+    Logger.log("No se pudo obtener token de NSTech. Error " + resp.getResponseCode() +
+               ": " + resp.getContentText());
+    return null;
+  }
+
+  return JSON.parse(resp.getContentText()).access_token;
 }
 
 
@@ -109,13 +145,15 @@ function enviarPosicionesANstech() {
     return;
   }
 
-  // --- Paso 3: entregar a NSTech ---
-  const authNstech = PropertiesService.getScriptProperties().getProperty("NSTECH_AUTH");
+  // --- Paso 3: pedir el token de acceso a NSTech (OAuth2) ---
+  const accessToken = obtenerTokenNstech();
+  if (!accessToken) return; // el error ya quedó en el registro
+
+  // --- Paso 4: entregar las posiciones a NSTech ---
   const envio = UrlFetchApp.fetch(NSTECH_URL, {
     method: "post",
     contentType: "application/json",
-    // Si NSTech NO pide autenticación, puedes quitar la línea "headers".
-    headers: authNstech ? { "Authorization": authNstech } : {},
+    headers: { "Authorization": "Bearer " + accessToken },
     payload: JSON.stringify(cuerpo),
     muteHttpExceptions: true
   });
@@ -164,7 +202,7 @@ function transformarANstech(datosSamsara) {
 
     positions.push({
       "position_type": "GPRS",
-      "technology_id": "",
+      "technology_id": TECHNOLOGY_ID,
       "account_id":    ACCOUNT_ID,
       "date":          gps.time,                 // ya viene en formato ISO
       "device_id":     deviceId,
