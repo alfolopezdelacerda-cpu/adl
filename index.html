@@ -543,14 +543,33 @@ function openModal(id){ document.getElementById(id).classList.add('show'); }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 
 // ENTRADA
+var entradaIVA = 0, entradaTotal = 0;
+function recalcEntrada(){
+  var subtotal = parseFloat(document.getElementById('e-subtotal').value) || 0;
+  entradaIVA = subtotal * 0.16;
+  entradaTotal = subtotal + entradaIVA;
+  document.getElementById('e-iva').textContent = '$' + entradaIVA.toFixed(2);
+  document.getElementById('e-total').textContent = '$' + entradaTotal.toFixed(2);
+}
+document.getElementById('e-subtotal').addEventListener('input', recalcEntrada);
+
 function submitEntrada(){
   var concepto = document.getElementById('e-concepto').value;
   var producto = document.getElementById('e-producto').value.trim();
   var cantidad = parseInt(document.getElementById('e-cantidad').value, 10);
   var subtotal = parseFloat(document.getElementById('e-subtotal').value);
-  if(!concepto || !producto || !cantidad || isNaN(subtotal)){ toast('Completa todos los campos', 'err'); return; }
-  
-  openModal('modalEntrada');
+  var persona = document.getElementById('e-persona').value.trim();
+  if(!concepto || !producto || !cantidad || isNaN(subtotal) || !persona){ toast('Completa todos los campos', 'err'); return; }
+
+  postData({action:'entrada', concepto:concepto, proveedor:document.getElementById('e-proveedor').value.trim(), producto:producto, cantidad:cantidad, subtotal:subtotal, iva:entradaIVA, total:entradaTotal, persona:persona})
+    .then(function(){
+      toast('Entrada registrada', 'ok');
+      document.getElementById('e-producto').value = '';
+      document.getElementById('e-cantidad').value = '';
+      document.getElementById('e-subtotal').value = '';
+      recalcEntrada();
+    })
+    .catch(function(err){ toast('Error: ' + err, 'err'); });
 }
 
 // SALIDA
@@ -567,11 +586,12 @@ function renderSalida(){
   if(!filtrados.length){ cont.innerHTML = '<div class="empty-state">No hay productos.</div>'; return; }
   cont.innerHTML = filtrados.map(function(p){
     var sel = seleccionSalida[p.producto];
+    var pEsc = p.producto.replace(/'/g,"\\'");
     return '<div class="prod-item '+(sel?'selected':'')+'">'+
-      '<div class="chk" onclick="toggleSalida(\''+p.producto.replace(/'/g,"\\'")+'\')">'+(sel?'✓':'')+'</div>'+
-      '<div class="info" onclick="toggleSalida(\''+p.producto.replace(/'/g,"\\'")+'\')">'+'<div class="nom">'+p.producto+'</div>'+
+      '<div class="chk" onclick="toggleSalida(\''+pEsc+'\')">'+(sel?'✓':'')+'</div>'+
+      '<div class="info" onclick="toggleSalida(\''+pEsc+'\')">'+'<div class="nom">'+p.producto+'</div>'+
       '<div class="meta">Disponible: '+p.cantidad+'</div></div>'+
-      (sel ? '<div class="qty"><input type="number" min="1" max="'+p.cantidad+'" value="'+sel.cantidad+'" onchange="setSalidaCant(\''+p.producto.replace(/'/g,"\\'")+'\',' + this.value + ')"></div>' : '')+
+      (sel ? '<div class="qty"><input type="number" min="1" max="'+p.cantidad+'" value="'+sel.cantidad+'" onchange="setSalidaCant(\''+pEsc+'\', this.value)"></div>' : '')+
     '</div>';
   }).join('');
   updateSummary();
@@ -583,7 +603,7 @@ function toggleSalida(p){
   renderSalida();
 }
 
-function setSalidaCant(p, cant){ if(seleccionSalida[p]) seleccionSalida[p].cantidad = Math.min(cant, seleccionSalida[p].disponible); renderSalida(); }
+function setSalidaCant(p, cant){ if(seleccionSalida[p]) seleccionSalida[p].cantidad = Math.max(1, Math.min(parseInt(cant,10)||1, seleccionSalida[p].disponible)); renderSalida(); }
 
 function updateSummary(){
   var n = Object.keys(seleccionSalida).length;
@@ -612,6 +632,7 @@ function confirmarSalida(){
 
 // ACTIVIDADES
 function refreshActividades(){
+  if(!usuarioActual) return;
   jsonp({action:'actividades', empleado:usuarioActual.id}).then(function(res){
     if(res && res.success){ actividades = res.data || []; renderActividades(); }
   }).catch(function(err){ toast('Error: ' + err, 'err'); });
@@ -625,6 +646,7 @@ function renderActividades(){
     return (prioridades[a.prioridad]||3) - (prioridades[b.prioridad]||3);
   });
   cont.innerHTML = actividades.map(function(a){
+    var idEsc = String(a.id).replace(/'/g,"\\'");
     return '<div class="activity-card '+(a.estado==='completada'?'completed':'')+(a.prioridad==='alta'?' priority-alta':'')+'">'+
       '<h3><span class="badge priority-'+a.prioridad+'">'+a.prioridad.toUpperCase()+'</span><span class="badge estado-'+a.estado+'">'+a.estado.toUpperCase()+'</span></h3>'+
       '<p style="font-weight:700;margin-top:6px;">'+a.descripcion+'</p>'+
@@ -632,14 +654,14 @@ function renderActividades(){
       '<p>Unidad: '+a.unidadAsignada+'</p>'+
       (a.duracionMin ? '<p>Duración: '+a.duracionMin+' min</p>' : '')+
       '<div class="actions">'+
-        (a.estado !== 'completada' ? '<button class="btn actividades small" onclick="abrirActividad(\''+a.id.replace(/'/g,"\\'")+'\'">Reportar</button>' : '<button disabled class="btn small" style="background:#ccc;">Completada</button>')+
+        (a.estado !== 'completada' ? '<button class="btn actividades small" onclick="abrirActividad(\''+idEsc+'\')">Reportar</button>' : '<button disabled class="btn small" style="background:#ccc;">Completada</button>')+
       '</div>'+
     '</div>';
   }).join('');
 }
 
 function abrirActividad(id){
-  actividadActual = actividades.find(function(a){ return a.id === id; });
+  actividadActual = actividades.find(function(a){ return String(a.id) === String(id); });
   if(!actividadActual) return;
   document.getElementById('actTitle').textContent = actividadActual.descripcion;
   document.getElementById('actDetail').innerHTML = '<div class="modal-row"><span>Tipo</span><span class="r-nom">'+actividadActual.tipoServicio+'</span></div>';
