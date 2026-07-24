@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#F2F3EF">
+<title>Mantenimiento ADL 2026</title>
+<style>
+  :root{
+    --bg:#F2F3EF;
+    --surface:#FFFFFF;
+    --ink:#232A2E;
+    --muted:#6B7580;
+    --border:#DEE3DD;
+    --amber:#C97A0F;
+    --entrada:#3E7D59;
+    --salida:#B14A2C;
+    --actividades:#2563EB;
+    --supervision:#7C3AED;
+    --dashboard:#10B981;
+    --danger:#B3432B;
+    --shadow: 0 2px 10px rgba(35,42,46,0.07);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:90px;
+  }
+  .wrap{max-width:480px;margin:0 auto;padding:0 14px;}
+
+  header.app-header{
+    background:var(--ink);
+    color:#F2F3EF;
+    padding:16px 14px 14px;
+    position:sticky; top:0; z-index:30;
+  }
+  header.app-header .inner{max-width:480px;margin:0 auto;}
+  header.app-header h1{font-size:15px;font-weight:700;margin:0 0 4px;line-height:1.25;}
+  header.app-header .user-info{font-size:11px;color:#B7C0BB;}
+  header.app-header .logout{position:absolute;top:16px;right:14px;background:rgba(255,255,255,0.1);border:none;color:#F2F3EF;padding:8px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;}
+
+  .login-screen{position:fixed;inset:0;background:var(--bg);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;}
+  .login-card{background:var(--surface);border-radius:16px;padding:24px;max-width:340px;box-shadow:var(--shadow);width:100%;}
+  .login-card h2{text-align:center;margin:0 0 8px;font-size:18px;}
+  .login-card .subtitle{text-align:center;color:var(--muted);font-size:12px;margin:0 0 20px;}
+  .login-card label{display:block;font-size:12px;font-weight:700;margin:12px 0 6px;}
+  .login-card input{width:100%;padding:11px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:15px;font-family:inherit;}
+  .login-card button{width:100%;padding:14px;margin-top:16px;background:var(--ink);color:#F2F3EF;border:none;border-radius:12px;font-weight:800;font-size:15px;cursor:pointer;}
+  .login-card .error{color:var(--danger);font-size:11px;margin-top:8px;text-align:center;}
+
+  .hidden{display:none!important;}
+
+  main{padding-top:14px;}
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .section-title{
+    font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;
+    color:var(--muted);margin:18px 2px 8px;
+  }
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:14px;box-shadow:var(--shadow);margin-bottom:14px;
+  }
+
+  label{display:block;font-size:12.5px;font-weight:700;color:var(--ink);margin:12px 0 6px;}
+  label .req{color:var(--danger);}
+  input[type=text], input[type=number], input[type=time], input[type=password], textarea, select{
+    width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 12px;
+    font-size:15px;background:#FCFCFB;color:var(--ink);font-family:inherit;
+  }
+  input:focus, textarea:focus, select:focus{outline:2px solid var(--amber);outline-offset:1px;}
+  textarea{resize:vertical;min-height:64px;}
+
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+  .money-box{
+    display:flex;justify-content:space-between;align-items:center;
+    background:#F6F4EE;border:1px dashed #D8CBB0;border-radius:10px;padding:10px 12px;margin-top:6px;
+  }
+  .money-box .lbl{font-size:12px;color:var(--muted);font-weight:700;}
+  .money-box .val{font-size:15px;font-weight:800;}
+
+  .btn{
+    width:100%;border:none;border-radius:12px;padding:14px;font-size:15px;font-weight:800;
+    letter-spacing:.01em;cursor:pointer;margin-top:16px;color:#fff;
+  }
+  .btn.entrada{background:var(--entrada);}
+  .btn.salida{background:var(--salida);}
+  .btn.actividades{background:var(--actividades);}
+  .btn.supervision{background:var(--supervision);}
+  .btn.dashboard{background:var(--dashboard);}
+  .btn:disabled{opacity:.55;}
+  .btn.small{width:auto;padding:10px 14px;margin:0;font-size:13px;}
+  .btn.ghost{background:none;border:1.5px solid var(--border);color:var(--ink);}
+
+  .search-box{position:sticky;top:78px;z-index:20;background:var(--bg);padding:10px 0 6px;}
+  .search-box input{background:var(--surface);}
+
+  .prod-item, .task-item{
+    display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);
+    border-radius:12px;padding:10px 12px;margin-bottom:8px;
+  }
+  .prod-item.selected{border-color:var(--salida);background:#FBF1EC;}
+  .prod-item .chk, .task-item .chk{width:22px;height:22px;flex:none;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;}
+  .prod-item.selected .chk{background:var(--salida);border-color:var(--salida);color:#fff;font-weight:800;}
+  .prod-item .info, .task-item .info{flex:1;min-width:0;}
+  .prod-item .nom, .task-item .nom{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .prod-item .meta, .task-item .meta{font-size:11.5px;color:var(--muted);margin-top:1px;}
+  .task-item.priority-alta .nom{color:var(--danger);}
+  .task-item.completed{opacity:.6;}
+  .prod-item .qty input{width:52px;text-align:center;padding:8px 4px;font-weight:700;}
+
+  .empty-state{text-align:center;color:var(--muted);font-size:13px;padding:26px 10px;}
+
+  .summary-bar{
+    position:fixed;left:0;right:0;bottom:68px;z-index:25;
+    background:var(--ink);color:#F2F3EF;padding:10px 14px;display:none;
+  }
+  .summary-bar.show{display:block;}
+  .summary-bar .inner{max-width:480px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .summary-bar .count{font-size:13px;}
+  .summary-bar button{background:var(--salida);color:#fff;border:none;border-radius:9px;padding:9px 14px;font-weight:800;font-size:13px;}
+
+  nav.tabbar{
+    position:fixed;left:0;right:0;bottom:0;z-index:40;
+    background:var(--surface);border-top:1px solid var(--border);
+    display:flex;padding:8px 10px calc(8px + env(safe-area-inset-bottom));
+    box-shadow:0 -2px 10px rgba(35,42,46,0.08);
+  }
+  nav.tabbar .tab{
+    flex:1;text-align:center;padding:8px 4px;border-radius:12px;font-weight:800;font-size:11px;
+    letter-spacing:.03em;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px;
+  }
+  nav.tabbar .tab.active{background:#EAF3EC;color:var(--entrada);}
+  nav.tabbar .tab svg{width:20px;height:20px;}
+
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(35,42,46,0.55);z-index:60;display:none;
+    align-items:flex-end;justify-content:center;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal-sheet{
+    background:var(--surface);width:100%;max-width:480px;border-radius:18px 18px 0 0;
+    padding:18px 16px calc(18px + env(safe-area-inset-bottom));max-height:84vh;overflow-y:auto;
+  }
+  .modal-sheet h2{font-size:16px;margin:0 0 4px;}
+  .modal-sheet p.sub{font-size:12.5px;color:var(--muted);margin:0 0 12px;}
+  .modal-row{display:flex;justify-content:space-between;font-size:13.5px;padding:7px 0;border-bottom:1px dashed var(--border);}
+  .modal-row .r-nom{font-weight:700;}
+  .modal-actions{display:flex;gap:10px;margin-top:16px;}
+  .modal-actions .btn{margin-top:0;}
+
+  .activity-card{
+    background:var(--surface);border:2px solid var(--border);border-radius:12px;padding:12px;margin-bottom:10px;
+  }
+  .activity-card.priority-alta{border-color:var(--danger);background:#FFF5F3;}
+  .activity-card.priority-media{border-color:var(--amber);}
+  .activity-card.completed{opacity:.65;background:#F0F0F0;}
+  .activity-card h3{margin:0 0 4px;font-size:14px;color:var(--ink);}
+  .activity-card .badge{display:inline-block;font-size:10px;font-weight:800;text-transform:uppercase;
+    padding:3px 8px;border-radius:6px;margin-right:6px;color:#fff;}
+  .activity-card .badge.priority-alta{background:var(--danger);}
+  .activity-card .badge.priority-media{background:var(--amber);}
+  .activity-card .badge.priority-baja{background:var(--muted);}
+  .activity-card .badge.estado-pendiente{background:#999;}
+  .activity-card .badge.estado-completada{background:var(--entrada);}
+  .activity-card p{margin:4px 0;font-size:12px;color:var(--muted);}
+  .activity-card .actions{display:flex;gap:6px;margin-top:8px;}
+  .activity-card .actions button{flex:1;font-size:12px;padding:8px;border-radius:8px;border:none;cursor:pointer;}
+
+  .chart-container{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:14px;}
+  .chart-container h3{margin:0 0 12px;font-size:14px;}
+  .chart-bar{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+  .chart-bar .label{font-size:12px;min-width:80px;font-weight:700;}
+  .chart-bar .bar{flex:1;height:24px;background:var(--entrada);border-radius:6px;position:relative;overflow:hidden;}
+  .chart-bar .bar.salida{background:var(--salida);}
+  .chart-bar .value{font-size:11px;font-weight:700;color:var(--muted);min-width:40px;text-align:right;}
+
+  #toast{
+    position:fixed;left:14px;right:14px;bottom:88px;z-index:80;
+    display:flex;justify-content:center;pointer-events:none;
+  }
+  .toast-msg{
+    background:var(--ink);color:#fff;padding:11px 16px;border-radius:10px;font-size:13px;font-weight:600;
+    max-width:440px;box-shadow:var(--shadow);opacity:0;transform:translateY(8px);transition:.2s;
+  }
+  .toast-msg.err{background:var(--danger);}
+  .toast-msg.ok{background:var(--entrada);}
+  .toast-msg.show{opacity:1;transform:translateY(0);}
+
+  .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;display:inline-block;animation:spin .7s linear infinite;}
+  @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+  .photo-preview{width:100%;max-height:200px;object-fit:contain;border-radius:8px;margin-top:8px;}
+  .photo-input{border:1.5px dashed var(--border);border-radius:10px;padding:12px;text-align:center;color:var(--muted);font-size:13px;position:relative;background:#FCFCFB;}
+  .photo-input input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="loginScreen">
+  <div class="login-card">
+    <h2>Mantenimiento 2026</h2>
+    <p class="subtitle">Ingresa con tu número de empleado</p>
+    <label>ID Empleado / Usuario</label>
+    <input type="text" id="loginId" placeholder="Ej: 001">
+    <label>Contraseña</label>
+    <input type="password" id="loginPwd" placeholder="••••••">
+    <button onclick="loginUser()">Ingresar</button>
+    <div class="error" id="loginError"></div>
+  </div>
+</div>
+
+<header class="app-header" id="appHeader" style="display:none;">
+  <div class="inner">
+    <div>
+      <h1>Mantenimiento 2026</h1>
+      <div class="user-info" id="userInfo">Conectado</div>
+    </div>
+    <button class="logout" onclick="logout()">Salir</button>
+  </div>
+</header>
+
+<main class="wrap" id="appMain" style="display:none;">
+  <!-- ENTRADA -->
+  <section class="panel active" id="panel-entrada">
+    <div class="section-title">Registrar entrada de material</div>
+    <div class="card">
+      <label>Concepto <span class="req">*</span></label>
+      <select id="e-concepto">
+        <option value="">Selecciona...</option>
+        <option value="Herramienta">Herramienta</option>
+        <option value="Refaccion">Refacción</option>
+        <option value="Lubricante">Lubricante</option>
+        <option value="Neumaticos">Neumáticos</option>
+      </select>
+      <label>Proveedor <span class="req" style="font-size:11px;">(opcional)</span></label>
+      <input type="text" id="e-proveedor" placeholder="Ej. Refaccionaria del Norte">
+      <label>Producto <span class="req">*</span></label>
+      <input type="text" id="e-producto" placeholder="Nombre del producto">
+      <div class="row2">
+        <div>
+          <label>Cantidad <span class="req">*</span></label>
+          <input type="number" id="e-cantidad" min="1" step="1" inputmode="numeric">
+        </div>
+        <div>
+          <label>Subtotal (MXN) <span class="req">*</span></label>
+          <input type="number" id="e-subtotal" min="0" step="0.01" inputmode="decimal">
+        </div>
+      </div>
+      <div class="money-box"><span class="lbl">IVA (16%)</span><span class="val" id="e-iva">$0.00</span></div>
+      <div class="money-box"><span class="lbl">TOTAL</span><span class="val" id="e-total">$0.00</span></div>
+      <label>Persona <span class="req">*</span></label>
+      <input type="text" id="e-persona" placeholder="Nombre">
+      <button class="btn entrada" onclick="submitEntrada()">Registrar</button>
+    </div>
+  </section>
+
+  <!-- SALIDA -->
+  <section class="panel" id="panel-salida">
+    <div class="section-title">Registrar salida de material</div>
+    <div class="search-box">
+      <input type="text" id="s-buscar" placeholder="Buscar producto..." oninput="renderSalida()">
+    </div>
+    <div id="salidaListado"></div>
+  </section>
+
+  <!-- ACTIVIDADES (Mecánico) -->
+  <section class="panel" id="panel-actividades">
+    <div class="section-title">Mis actividades del día</div>
+    <div id="actividadesListado"></div>
+  </section>
+
+  <!-- SUPERVISIÓN -->
+  <section class="panel" id="panel-supervision">
+    <div class="section-title">Panel de supervisión</div>
+    <div class="card">
+      <h3 style="margin:0 0 12px;font-size:14px;">Crear actividad</h3>
+      <label>Empleado <span class="req">*</span></label>
+      <input type="text" id="sup-empleado" placeholder="ID o nombre">
+      <label>Descripción <span class="req">*</span></label>
+      <textarea id="sup-descripcion" placeholder="Ej: Cambiar balatas delantera unidad TR01"></textarea>
+      <label>Tipo de servicio</label>
+      <select id="sup-tipoServicio">
+        <option value="Cambio de balatas">Cambio de balatas</option>
+        <option value="Cambio de aceite">Cambio de aceite</option>
+        <option value="Cambio de filtro">Cambio de filtro</option>
+        <option value="Reparacion frenos">Reparación frenos</option>
+        <option value="Preventivo">Preventivo</option>
+        <option value="Correctivo">Correctivo</option>
+        <option value="Auxilio vial">Auxilio vial</option>
+        <option value="Otro">Otro</option>
+      </select>
+      <div class="row2">
+        <div>
+          <label>Prioridad</label>
+          <select id="sup-prioridad">
+            <option value="baja">Baja</option>
+            <option value="media" selected>Media</option>
+            <option value="alta">Alta</option>
+          </select>
+        </div>
+        <div>
+          <label>Unidad asignada</label>
+          <input type="text" id="sup-unidad" placeholder="Ej: TR01">
+        </div>
+      </div>
+      <button class="btn supervision" onclick="crearActividad()">Crear actividad</button>
+    </div>
+
+    <div class="section-title" style="margin-top:24px;">Gestión de usuarios</div>
+    <div class="card">
+      <label>ID Empleado <span class="req">*</span></label>
+      <input type="text" id="usr-id" placeholder="Ej: 001">
+      <label>Nombre <span class="req">*</span></label>
+      <input type="text" id="usr-nombre" placeholder="Nombre completo">
+      <label>Contraseña <span class="req">*</span></label>
+      <input type="password" id="usr-pwd" placeholder="••••••">
+      <label>Rol</label>
+      <select id="usr-rol">
+        <option value="mecanico">Mecánico</option>
+        <option value="supervisor">Supervisor</option>
+      </select>
+      <button class="btn supervision" onclick="crearUsuario()">Crear usuario</button>
+    </div>
+
+    <div id="usuariosListado"></div>
+  </section>
+
+  <!-- DASHBOARD -->
+  <section class="panel" id="panel-dashboard">
+    <div class="section-title">Dashboard de productividad</div>
+    <div id="dashboardContent"></div>
+  </section>
+</main>
+
+<div class="summary-bar" id="summaryBar">
+  <div class="inner">
+    <div class="count"><b id="summaryCount">0</b> producto(s)</div>
+    <button onclick="abrirConfirmSalida()">Confirmar</button>
+  </div>
+</div>
+
+<nav class="tabbar" id="appTabbar" style="display:none;">
+  <div class="tab active" id="tab-entrada" onclick="switchTab('entrada')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+    ENTRADA
+  </div>
+  <div class="tab" id="tab-salida" onclick="switchTab('salida')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+    SALIDA
+  </div>
+  <div class="tab" id="tab-actividades" onclick="switchTab('actividades')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2"/></svg>
+    TAREAS
+  </div>
+  <div class="tab" id="tab-supervision" onclick="switchTab('supervision')" style="display:none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+    SUPERVISION
+  </div>
+  <div class="tab" id="tab-dashboard" onclick="switchTab('dashboard')" style="display:none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+    DASHBOARD
+  </div>
+</nav>
+
+<div id="toast"></div>
+
+<!-- Modal Confirmación Salida -->
+<div class="modal-overlay" id="modalSalida">
+  <div class="modal-sheet">
+    <h2>Confirmar salida</h2>
+    <p class="sub">Revisa los datos antes de registrar.</p>
+    <div id="resumenSalida"></div>
+    <label>Tipo de servicio <span class="req">*</span></label>
+    <select id="sal-tipoServicio">
+      <option value="">Selecciona...</option>
+      <option value="Cambio de balatas">Cambio de balatas</option>
+      <option value="Cambio de aceite">Cambio de aceite</option>
+      <option value="Cambio de filtro">Cambio de filtro</option>
+      <option value="Reparacion frenos">Reparación frenos</option>
+      <option value="Preventivo">Preventivo</option>
+      <option value="Correctivo">Correctivo</option>
+      <option value="Auxilio vial">Auxilio vial</option>
+      <option value="Otro">Otro</option>
+    </select>
+    <label>Motivo <span class="req">*</span></label>
+    <textarea id="sal-motivo" placeholder="Describe brevemente..."></textarea>
+    <label>Unidad <span class="req">*</span></label>
+    <select id="sal-unidad">
+      <option value="">Selecciona...</option>
+      <option value="TR01">TR01</option><option value="TR02">TR02</option><option value="TR03">TR03</option>
+      <option value="TR04">TR04</option><option value="TR05">TR05</option><option value="TR06">TR06</option>
+      <option value="TR07">TR07</option><option value="TR08">TR08</option><option value="TR09">TR09</option>
+      <option value="TR10">TR10</option><option value="TF01">TF01</option><option value="TF02">TF02</option>
+      <option value="TF03">TF03</option><option value="TF04">TF04</option><option value="TF05">TF05</option>
+      <option value="TF06">TF06</option><option value="CAM01">CAM01</option><option value="CAM02">CAM02</option>
+      <option value="CAM03">CAM03</option><option value="CAM04">CAM04</option><option value="ESCAPE">ESCAPE</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal('modalSalida')">Cancelar</button>
+      <button class="btn salida" onclick="confirmarSalida()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Actividad Detalle -->
+<div class="modal-overlay" id="modalActividad">
+  <div class="modal-sheet">
+    <h2 id="actTitle">Actividad</h2>
+    <p class="sub" id="actSub">Registra tu tiempo y evidencia</p>
+    <div id="actDetail"></div>
+    <label>Hora de inicio <span class="req">*</span></label>
+    <input type="time" id="act-horaInicio">
+    <label>Hora de término <span class="req">*</span></label>
+    <input type="time" id="act-horaFin">
+    <label>Duración estimada</label>
+    <div class="money-box"><span class="lbl">Tiempo</span><span class="val" id="act-duracion">-- min</span></div>
+    <label>Observaciones</label>
+    <textarea id="act-observaciones" placeholder="Detalles de la actividad..."></textarea>
+    <label>Foto de evidencia <span class="req" style="font-size:11px;">(opcional)</span></label>
+    <div class="photo-input" id="photoBoxActa">
+      <input type="file" accept="image/*" capture="environment" id="act-foto">
+      <span id="photoLabelActa">Toca para tomar / subir foto</span>
+    </div>
+    <img id="photoPreviewActa" class="photo-preview" style="display:none;">
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal('modalActividad')">Cancelar</button>
+      <button class="btn actividades" onclick="reportarActividad()">Registrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+var WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxOuKgKAoRwQh7VPJ3u_vx6Z9UCcJUafydwObLc2NP-yB4uJY2mNNcVQ7mtkHoZrDim/exec";
+var usuarioActual = null;
+var inventario = [];
+var actividades = [];
+var seleccionSalida = {};
+var actividadActual = null;
+var fotoActividadBase64 = null;
+
+function loginUser(){
+  var id = document.getElementById('loginId').value.trim();
+  var pwd = document.getElementById('loginPwd').value.trim();
+  if(!id || !pwd){ toast('Completa los campos', 'err'); return; }
+  
+  jsonp({action:'autenticar',idEmpleado:id,contrasena:pwd}).then(function(res){
+    if(res && res.success && res.usuario){
+      usuarioActual = res.usuario;
+      initApp();
+    } else {
+      document.getElementById('loginError').textContent = 'Credenciales inválidas';
+    }
+  }).catch(function(err){
+    document.getElementById('loginError').textContent = 'Error de conexión: ' + err;
+  });
+}
+
+function initApp(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appHeader').style.display = 'block';
+  document.getElementById('appMain').style.display = 'block';
+  document.getElementById('appTabbar').style.display = 'flex';
+  document.getElementById('userInfo').textContent = usuarioActual.nombre + ' (' + usuarioActual.rol + ')';
+  
+  if(usuarioActual.rol === 'supervisor' || usuarioActual.rol === 'admin'){
+    document.getElementById('tab-entrada').style.display = 'none';
+    document.getElementById('tab-salida').style.display = 'none';
+    document.getElementById('tab-actividades').style.display = 'none';
+    document.getElementById('tab-supervision').style.display = 'flex';
+    document.getElementById('tab-dashboard').style.display = 'flex';
+    switchTab('supervision');
+    refreshDashboard();
+    listarUsuarios();
+  } else {
+    document.getElementById('tab-supervision').style.display = 'none';
+    document.getElementById('tab-dashboard').style.display = 'none';
+    refreshInventario();
+    refreshActividades();
+  }
+}
+
+function logout(){
+  usuarioActual = null;
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('appHeader').style.display = 'none';
+  document.getElementById('appMain').style.display = 'none';
+  document.getElementById('appTabbar').style.display = 'none';
+  document.getElementById('loginId').value = '';
+  document.getElementById('loginPwd').value = '';
+  document.getElementById('loginError').textContent = '';
+}
+
+function jsonp(params){
+  return new Promise(function(resolve, reject){
+    var cbName = 'cb_' + Date.now() + '_' + Math.floor(Math.random()*100000);
+    var timeout = setTimeout(function(){ cleanup(); reject('Timeout'); }, 15000);
+    function cleanup(){ clearTimeout(timeout); delete window[cbName]; if(script.parentNode) script.parentNode.removeChild(script); }
+    window[cbName] = function(data){ cleanup(); resolve(data); };
+    var qs = Object.keys(params).map(function(k){ return encodeURIComponent(k)+'='+encodeURIComponent(params[k]); }).join('&');
+    var script = document.createElement('script');
+    script.src = WEBAPP_URL + '?' + qs + '&callback=' + cbName;
+    script.onerror = function(){ cleanup(); reject('Error de red'); };
+    document.body.appendChild(script);
+  });
+}
+
+function postData(payload){
+  return fetch(WEBAPP_URL, { method:'POST', mode:'no-cors', body: JSON.stringify(payload) });
+}
+
+function toast(msg, type){
+  var box = document.getElementById('toast');
+  var el = document.createElement('div');
+  el.className = 'toast-msg' + (type ? ' ' + type : '');
+  el.textContent = msg;
+  box.innerHTML = '';
+  box.appendChild(el);
+  requestAnimationFrame(function(){ el.classList.add('show'); });
+  setTimeout(function(){ el.classList.remove('show'); }, 3800);
+}
+
+function switchTab(name){
+  ['entrada','salida','actividades','supervision','dashboard'].forEach(function(t){
+    document.getElementById('panel-'+t).classList.toggle('active', t===name);
+    var tab = document.getElementById('tab-'+t);
+    if(tab) tab.classList.toggle('active', t===name);
+  });
+  if(name==='actividades') refreshActividades();
+  if(name==='dashboard') refreshDashboard();
+  if(name==='salida') renderSalida();
+}
+
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+// ENTRADA
+function submitEntrada(){
+  var concepto = document.getElementById('e-concepto').value;
+  var producto = document.getElementById('e-producto').value.trim();
+  var cantidad = parseInt(document.getElementById('e-cantidad').value, 10);
+  var subtotal = parseFloat(document.getElementById('e-subtotal').value);
+  if(!concepto || !producto || !cantidad || isNaN(subtotal)){ toast('Completa todos los campos', 'err'); return; }
+  
+  openModal('modalEntrada');
+}
+
+// SALIDA
+function refreshInventario(){
+  jsonp({action:'inventario'}).then(function(res){
+    if(res && res.success){ inventario = res.data || []; renderSalida(); }
+  }).catch(function(err){ toast('Error: ' + err, 'err'); });
+}
+
+function renderSalida(){
+  var q = (document.getElementById('s-buscar').value || '').toLowerCase();
+  var filtrados = inventario.filter(function(p){ return p.producto.toLowerCase().indexOf(q) > -1; });
+  var cont = document.getElementById('salidaListado');
+  if(!filtrados.length){ cont.innerHTML = '<div class="empty-state">No hay productos.</div>'; return; }
+  cont.innerHTML = filtrados.map(function(p){
+    var sel = seleccionSalida[p.producto];
+    return '<div class="prod-item '+(sel?'selected':'')+'">'+
+      '<div class="chk" onclick="toggleSalida(\''+p.producto.replace(/'/g,"\\'")+'\')">'+(sel?'✓':'')+'</div>'+
+      '<div class="info" onclick="toggleSalida(\''+p.producto.replace(/'/g,"\\'")+'\')">'+'<div class="nom">'+p.producto+'</div>'+
+      '<div class="meta">Disponible: '+p.cantidad+'</div></div>'+
+      (sel ? '<div class="qty"><input type="number" min="1" max="'+p.cantidad+'" value="'+sel.cantidad+'" onchange="setSalidaCant(\''+p.producto.replace(/'/g,"\\'")+'\',' + this.value + ')"></div>' : '')+
+    '</div>';
+  }).join('');
+  updateSummary();
+}
+
+function toggleSalida(p){
+  if(seleccionSalida[p]){ delete seleccionSalida[p]; }
+  else { var inv = inventario.find(function(x){ return x.producto === p; }); if(inv) seleccionSalida[p] = { cantidad: 1, disponible: inv.cantidad }; }
+  renderSalida();
+}
+
+function setSalidaCant(p, cant){ if(seleccionSalida[p]) seleccionSalida[p].cantidad = Math.min(cant, seleccionSalida[p].disponible); renderSalida(); }
+
+function updateSummary(){
+  var n = Object.keys(seleccionSalida).length;
+  document.getElementById('summaryCount').textContent = n;
+  document.getElementById('summaryBar').classList.toggle('show', n > 0);
+}
+
+function abrirConfirmSalida(){
+  var keys = Object.keys(seleccionSalida);
+  var html = keys.map(function(p){ return '<div class="modal-row"><span>'+p+'</span><span class="r-nom">x'+seleccionSalida[p].cantidad+'</span></div>'; }).join('');
+  document.getElementById('resumenSalida').innerHTML = html;
+  openModal('modalSalida');
+}
+
+function confirmarSalida(){
+  var tipoServicio = document.getElementById('sal-tipoServicio').value;
+  var motivo = document.getElementById('sal-motivo').value.trim();
+  var unidad = document.getElementById('sal-unidad').value;
+  if(!tipoServicio || !motivo || !unidad){ toast('Completa todos los campos', 'err'); return; }
+  
+  var items = Object.keys(seleccionSalida).map(function(p){ return {producto:p, cantidad:seleccionSalida[p].cantidad}; });
+  postData({action:'salida', items:items, tipoServicio:tipoServicio, motivo:motivo, unidad:unidad, persona:usuarioActual.nombre})
+    .then(function(){ closeModal('modalSalida'); toast('Salida registrada', 'ok'); seleccionSalida = {}; refreshInventario(); })
+    .catch(function(err){ toast('Error: ' + err, 'err'); });
+}
+
+// ACTIVIDADES
+function refreshActividades(){
+  jsonp({action:'actividades', empleado:usuarioActual.id}).then(function(res){
+    if(res && res.success){ actividades = res.data || []; renderActividades(); }
+  }).catch(function(err){ toast('Error: ' + err, 'err'); });
+}
+
+function renderActividades(){
+  var cont = document.getElementById('actividadesListado');
+  if(!actividades.length){ cont.innerHTML = '<div class="empty-state">No tienes actividades asignadas.</div>'; return; }
+  actividades.sort(function(a,b){
+    var prioridades = {alta:0, media:1, baja:2};
+    return (prioridades[a.prioridad]||3) - (prioridades[b.prioridad]||3);
+  });
+  cont.innerHTML = actividades.map(function(a){
+    return '<div class="activity-card '+(a.estado==='completada'?'completed':'')+(a.prioridad==='alta'?' priority-alta':'')+'">'+
+      '<h3><span class="badge priority-'+a.prioridad+'">'+a.prioridad.toUpperCase()+'</span><span class="badge estado-'+a.estado+'">'+a.estado.toUpperCase()+'</span></h3>'+
+      '<p style="font-weight:700;margin-top:6px;">'+a.descripcion+'</p>'+
+      '<p>Tipo: '+a.tipoServicio+'</p>'+
+      '<p>Unidad: '+a.unidadAsignada+'</p>'+
+      (a.duracionMin ? '<p>Duración: '+a.duracionMin+' min</p>' : '')+
+      '<div class="actions">'+
+        (a.estado !== 'completada' ? '<button class="btn actividades small" onclick="abrirActividad(\''+a.id.replace(/'/g,"\\'")+'\'">Reportar</button>' : '<button disabled class="btn small" style="background:#ccc;">Completada</button>')+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function abrirActividad(id){
+  actividadActual = actividades.find(function(a){ return a.id === id; });
+  if(!actividadActual) return;
+  document.getElementById('actTitle').textContent = actividadActual.descripcion;
+  document.getElementById('actDetail').innerHTML = '<div class="modal-row"><span>Tipo</span><span class="r-nom">'+actividadActual.tipoServicio+'</span></div>';
+  openModal('modalActividad');
+}
+
+document.getElementById('act-horaInicio').addEventListener('change', calcularDuracionAct);
+document.getElementById('act-horaFin').addEventListener('change', calcularDuracionAct);
+
+function calcularDuracionAct(){
+  var inicio = document.getElementById('act-horaInicio').value;
+  var fin = document.getElementById('act-horaFin').value;
+  if(!inicio || !fin){ document.getElementById('act-duracion').textContent = '-- min'; return; }
+  var parts1 = inicio.split(':');
+  var parts2 = fin.split(':');
+  var minInicio = parseInt(parts1[0])*60 + parseInt(parts1[1]);
+  var minFin = parseInt(parts2[0])*60 + parseInt(parts2[1]);
+  var duracion = minFin - minInicio;
+  document.getElementById('act-duracion').textContent = (duracion >= 0 ? duracion : '--') + ' min';
+}
+
+document.getElementById('act-foto').addEventListener('change', function(e){
+  var file = e.target.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var img = new Image();
+    img.onload = function(){
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.min(img.width, 1000);
+      canvas.height = img.height * (canvas.width / img.width);
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      fotoActividadBase64 = canvas.toDataURL('image/jpeg', 0.72);
+      var prev = document.getElementById('photoPreviewActa');
+      prev.src = fotoActividadBase64;
+      prev.style.display = 'block';
+      document.getElementById('photoLabelActa').textContent = 'Foto lista';
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+function reportarActividad(){
+  if(!actividadActual) return;
+  var horaInicio = document.getElementById('act-horaInicio').value;
+  var horaFin = document.getElementById('act-horaFin').value;
+  if(!horaInicio || !horaFin){ toast('Indica las horas', 'err'); return; }
+  
+  postData({action:'reportarActividad', actividadID:actividadActual.id, horaInicio:horaInicio, horaFin:horaFin, foto:fotoActividadBase64, observaciones:document.getElementById('act-observaciones').value})
+    .then(function(){ closeModal('modalActividad'); toast('Actividad registrada', 'ok'); refreshActividades(); })
+    .catch(function(err){ toast('Error: ' + err, 'err'); });
+}
+
+// SUPERVISIÓN
+function crearActividad(){
+  var empleado = document.getElementById('sup-empleado').value.trim();
+  var descripcion = document.getElementById('sup-descripcion').value.trim();
+  if(!empleado || !descripcion){ toast('Completa empleado y descripción', 'err'); return; }
+  
+  postData({action:'crearActividad', idEmpleado:empleado, descripcion:descripcion, tipoServicio:document.getElementById('sup-tipoServicio').value, prioridad:document.getElementById('sup-prioridad').value, unidadAsignada:document.getElementById('sup-unidad').value})
+    .then(function(){ toast('Actividad creada', 'ok'); document.getElementById('sup-empleado').value = ''; document.getElementById('sup-descripcion').value = ''; })
+    .catch(function(err){ toast('Error: ' + err, 'err'); });
+}
+
+function crearUsuario(){
+  var id = document.getElementById('usr-id').value.trim();
+  var nombre = document.getElementById('usr-nombre').value.trim();
+  var pwd = document.getElementById('usr-pwd').value.trim();
+  if(!id || !nombre || !pwd){ toast('Completa todos los campos', 'err'); return; }
+  
+  postData({action:'crearUsuario', idEmpleado:id, nombre:nombre, contrasena:pwd, rol:document.getElementById('usr-rol').value})
+    .then(function(){ toast('Usuario creado', 'ok'); document.getElementById('usr-id').value = ''; document.getElementById('usr-nombre').value = ''; document.getElementById('usr-pwd').value = ''; listarUsuarios(); })
+    .catch(function(err){ toast('Error: ' + err, 'err'); });
+}
+
+function listarUsuarios(){
+  jsonp({action:'listarUsuarios'}).then(function(res){
+    if(res && res.success && res.usuarios){
+      var cont = document.getElementById('usuariosListado');
+      cont.innerHTML = '<div class="section-title">Usuarios registrados</div><div class="card">'+
+        res.usuarios.map(function(u){ return '<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;"><span><strong>'+u.nombre+'</strong><br><span style="font-size:11px;color:var(--muted);">'+u.idEmpleado+' · '+u.rol+'</span></span></div>'; }).join('')+
+      '</div>';
+    }
+  }).catch(function(err){ });
+}
+
+// DASHBOARD
+function refreshDashboard(){
+  jsonp({action:'dashboard'}).then(function(res){
+    if(res && res.success){ renderDashboard(res.data || []); }
+  }).catch(function(err){ toast('Error: ' + err, 'err'); });
+}
+
+function renderDashboard(stats){
+  var cont = document.getElementById('dashboardContent');
+  var maxVal = Math.max.apply(null, stats.map(function(s){ return s.promedioMinutos; }).filter(Boolean)) || 100;
+  cont.innerHTML = '<div class="chart-container"><h3>Tiempo promedio por tipo de servicio</h3>'+
+    stats.map(function(s){
+      var width = (s.promedioMinutos / maxVal) * 100;
+      return '<div class="chart-bar"><div class="label">'+s.tipoServicio+'</div><div class="bar" style="width:'+width+'%;"></div><div class="value">'+s.promedioMinutos+' min</div></div>';
+    }).join('')+
+  '</div>';
+}
+</script>
+</body>
+</html>
