@@ -71,7 +71,7 @@
 
   label{display:block;font-size:12.5px;font-weight:700;color:var(--ink);margin:12px 0 6px;}
   label .req{color:var(--danger);}
-  input[type=text], input[type=number], input[type=time], input[type=password], textarea, select{
+  input[type=text], input[type=number], input[type=time], input[type=datetime-local], input[type=password], textarea, select{
     width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 12px;
     font-size:15px;background:#FCFCFB;color:var(--ink);font-family:inherit;
   }
@@ -171,6 +171,8 @@
   .activity-card .badge.priority-baja{background:var(--muted);}
   .activity-card .badge.estado-pendiente{background:#999;}
   .activity-card .badge.estado-completada{background:var(--entrada);}
+  .activity-card .badge.estado-pausada{background:var(--amber);}
+  .activity-card.pausada{border-color:var(--amber);background:#FEF7EC;}
   .activity-card p{margin:4px 0;font-size:12px;color:var(--muted);}
   .activity-card .actions{display:flex;gap:6px;margin-top:8px;}
   .activity-card .actions button{flex:1;font-size:12px;padding:8px;border-radius:8px;border:none;cursor:pointer;}
@@ -269,6 +271,7 @@
     <div class="search-box">
       <input type="text" id="s-buscar" placeholder="Buscar producto..." oninput="renderSalida()">
     </div>
+    <button class="btn ghost small" style="width:100%;margin:0 0 10px;" onclick="refreshInventario(true)">↻ Actualizar inventario</button>
     <div id="salidaListado"></div>
   </section>
 
@@ -278,13 +281,52 @@
     <div id="actividadesListado"></div>
   </section>
 
+  <!-- AUXILIO (Mecánico) -->
+  <section class="panel" id="panel-auxilio">
+    <div class="section-title">Auxilio vial · Rescate en carretera</div>
+    <div class="card">
+      <label>Fecha y hora del reporte</label>
+      <input type="text" id="aux-fechaReporte" readonly>
+      <label>Fecha y hora de inicio del auxilio <span class="req">*</span></label>
+      <input type="datetime-local" id="aux-fechaInicio">
+      <label>Unidad a la que se auxilia <span class="req">*</span></label>
+      <select id="aux-unidad">
+        <option value="">Selecciona...</option>
+        <option value="TR01">TR01</option><option value="TR02">TR02</option><option value="TR03">TR03</option>
+        <option value="TR04">TR04</option><option value="TR05">TR05</option><option value="TR06">TR06</option>
+        <option value="TR07">TR07</option><option value="TR08">TR08</option><option value="TR09">TR09</option>
+        <option value="TR10">TR10</option><option value="TF01">TF01</option><option value="TF02">TF02</option>
+        <option value="TF03">TF03</option><option value="TF04">TF04</option><option value="TF05">TF05</option>
+        <option value="TF06">TF06</option><option value="CAM01">CAM01</option><option value="CAM02">CAM02</option>
+        <option value="CAM03">CAM03</option><option value="CAM04">CAM04</option><option value="ESCAPE">ESCAPE</option>
+      </select>
+      <label>Causa del rescate <span class="req">*</span></label>
+      <textarea id="aux-causa" placeholder="Ej: Ponchadura, falla de motor, se quedó sin combustible..."></textarea>
+      <label>Ubicación GPS <span class="req">*</span></label>
+      <div class="money-box">
+        <span class="lbl" id="aux-ubicacionLbl">Sin ubicación</span>
+        <button class="btn small" style="margin:0;padding:8px 12px;background:var(--actividades);color:#fff;" onclick="obtenerUbicacion()">📍 Obtener</button>
+      </div>
+      <a id="aux-mapaLink" href="#" target="_blank" style="display:none;font-size:12px;color:var(--actividades);font-weight:700;margin-top:6px;">Ver en el mapa ↗</a>
+      <label>Foto de evidencia <span class="req" style="font-size:11px;">(opcional)</span></label>
+      <div class="photo-input" id="photoBoxAux">
+        <input type="file" accept="image/*" capture="environment" id="aux-foto">
+        <span id="photoLabelAux">Toca para tomar / subir foto</span>
+      </div>
+      <img id="photoPreviewAux" class="photo-preview" style="display:none;">
+      <button class="btn salida" onclick="submitAuxilio()">Registrar auxilio</button>
+    </div>
+  </section>
+
   <!-- SUPERVISIÓN -->
   <section class="panel" id="panel-supervision">
     <div class="section-title">Panel de supervisión</div>
     <div class="card">
       <h3 style="margin:0 0 12px;font-size:14px;">Crear actividad</h3>
-      <label>Empleado <span class="req">*</span></label>
-      <input type="text" id="sup-empleado" placeholder="ID o nombre">
+      <label>Empleado 1 <span class="req">*</span></label>
+      <input type="text" id="sup-empleado" placeholder="ID del empleado">
+      <label>Empleado 2 <span class="req" style="font-size:11px;">(opcional · actividad compartida)</span></label>
+      <input type="text" id="sup-empleado2" placeholder="ID del segundo mecánico">
       <label>Descripción <span class="req">*</span></label>
       <textarea id="sup-descripcion" placeholder="Ej: Cambiar balatas delantera unidad TR01"></textarea>
       <label>Tipo de servicio</label>
@@ -361,6 +403,10 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2"/></svg>
     TAREAS
   </div>
+  <div class="tab" id="tab-auxilio" onclick="switchTab('auxilio')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6m0 0l3-3m-3 3L9 5M5 12a7 7 0 0 0 14 0M12 22v-4"/><circle cx="12" cy="12" r="2"/></svg>
+    AUXILIO
+  </div>
   <div class="tab" id="tab-supervision" onclick="switchTab('supervision')" style="display:none;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
     SUPERVISION
@@ -419,10 +465,12 @@
     <div id="actDetail"></div>
     <label>Hora de inicio <span class="req">*</span></label>
     <input type="time" id="act-horaInicio">
-    <label>Hora de término <span class="req">*</span></label>
+    <label>Hora de término <span class="req" style="font-size:11px;">(obligatorio solo al finalizar)</span></label>
     <input type="time" id="act-horaFin">
     <label>Duración estimada</label>
     <div class="money-box"><span class="lbl">Tiempo</span><span class="val" id="act-duracion">-- min</span></div>
+    <label>Motivo de pausa <span class="req" style="font-size:11px;">(solo si vas a pausar)</span></label>
+    <textarea id="act-motivoPausa" placeholder="Ej: No hay refacciones, falta herramienta, esperando autorización..."></textarea>
     <label>Observaciones</label>
     <textarea id="act-observaciones" placeholder="Detalles de la actividad..."></textarea>
     <label>Foto de evidencia <span class="req" style="font-size:11px;">(opcional)</span></label>
@@ -433,7 +481,8 @@
     <img id="photoPreviewActa" class="photo-preview" style="display:none;">
     <div class="modal-actions">
       <button class="btn ghost" onclick="closeModal('modalActividad')">Cancelar</button>
-      <button class="btn actividades" onclick="reportarActividad()">Registrar</button>
+      <button class="btn" style="background:var(--amber);" onclick="pausarActividad()">⏸ Pausar</button>
+      <button class="btn actividades" onclick="reportarActividad()">Finalizar</button>
     </div>
   </div>
 </div>
@@ -475,14 +524,20 @@ function initApp(){
     document.getElementById('tab-entrada').style.display = 'none';
     document.getElementById('tab-salida').style.display = 'none';
     document.getElementById('tab-actividades').style.display = 'none';
+    document.getElementById('tab-auxilio').style.display = 'none';
     document.getElementById('tab-supervision').style.display = 'flex';
     document.getElementById('tab-dashboard').style.display = 'flex';
     switchTab('supervision');
     refreshDashboard();
     listarUsuarios();
   } else {
+    document.getElementById('tab-entrada').style.display = 'flex';
+    document.getElementById('tab-salida').style.display = 'flex';
+    document.getElementById('tab-actividades').style.display = 'flex';
+    document.getElementById('tab-auxilio').style.display = 'flex';
     document.getElementById('tab-supervision').style.display = 'none';
     document.getElementById('tab-dashboard').style.display = 'none';
+    switchTab('entrada');
     refreshInventario();
     refreshActividades();
   }
@@ -529,7 +584,7 @@ function toast(msg, type){
 }
 
 function switchTab(name){
-  ['entrada','salida','actividades','supervision','dashboard'].forEach(function(t){
+  ['entrada','salida','actividades','auxilio','supervision','dashboard'].forEach(function(t){
     document.getElementById('panel-'+t).classList.toggle('active', t===name);
     var tab = document.getElementById('tab-'+t);
     if(tab) tab.classList.toggle('active', t===name);
@@ -537,6 +592,7 @@ function switchTab(name){
   if(name==='actividades') refreshActividades();
   if(name==='dashboard') refreshDashboard();
   if(name==='salida') renderSalida();
+  if(name==='auxilio') initAuxilio();
 }
 
 function openModal(id){ document.getElementById(id).classList.add('show'); }
@@ -573,9 +629,9 @@ function submitEntrada(){
 }
 
 // SALIDA
-function refreshInventario(){
+function refreshInventario(manual){
   jsonp({action:'inventario'}).then(function(res){
-    if(res && res.success){ inventario = res.data || []; renderSalida(); }
+    if(res && res.success){ inventario = res.data || []; renderSalida(); if(manual) toast('Inventario actualizado', 'ok'); }
   }).catch(function(err){ toast('Error: ' + err, 'err'); });
 }
 
@@ -647,14 +703,16 @@ function renderActividades(){
   });
   cont.innerHTML = actividades.map(function(a){
     var idEsc = String(a.id).replace(/'/g,"\\'");
-    return '<div class="activity-card '+(a.estado==='completada'?'completed':'')+(a.prioridad==='alta'?' priority-alta':'')+'">'+
+    return '<div class="activity-card '+(a.estado==='completada'?'completed':'')+(a.estado==='pausada'?' pausada':'')+(a.prioridad==='alta'?' priority-alta':'')+'">'+
       '<h3><span class="badge priority-'+a.prioridad+'">'+a.prioridad.toUpperCase()+'</span><span class="badge estado-'+a.estado+'">'+a.estado.toUpperCase()+'</span></h3>'+
       '<p style="font-weight:700;margin-top:6px;">'+a.descripcion+'</p>'+
       '<p>Tipo: '+a.tipoServicio+'</p>'+
       '<p>Unidad: '+a.unidadAsignada+'</p>'+
+      (a.idEmpleado2 ? '<p>Compartida con: '+a.idEmpleado2+'</p>' : '')+
+      (a.estado==='pausada' && a.motivoPausa ? '<p style="color:var(--amber);font-weight:700;">⏸ Pausa: '+a.motivoPausa+'</p>' : '')+
       (a.duracionMin ? '<p>Duración: '+a.duracionMin+' min</p>' : '')+
       '<div class="actions">'+
-        (a.estado !== 'completada' ? '<button class="btn actividades small" onclick="abrirActividad(\''+idEsc+'\')">Reportar</button>' : '<button disabled class="btn small" style="background:#ccc;">Completada</button>')+
+        (a.estado !== 'completada' ? '<button class="btn actividades small" onclick="abrirActividad(\''+idEsc+'\')">'+(a.estado==='pausada'?'Reanudar / Reportar':'Reportar')+'</button>' : '<button disabled class="btn small" style="background:#ccc;">Completada</button>')+
       '</div>'+
     '</div>';
   }).join('');
@@ -665,6 +723,16 @@ function abrirActividad(id){
   if(!actividadActual) return;
   document.getElementById('actTitle').textContent = actividadActual.descripcion;
   document.getElementById('actDetail').innerHTML = '<div class="modal-row"><span>Tipo</span><span class="r-nom">'+actividadActual.tipoServicio+'</span></div>';
+  // Reset / precarga
+  var hi = String(actividadActual.horaInicio || '');
+  document.getElementById('act-horaInicio').value = /^\d{1,2}:\d{2}/.test(hi) ? hi.substring(0,5) : '';
+  document.getElementById('act-horaFin').value = '';
+  document.getElementById('act-motivoPausa').value = (actividadActual.estado === 'pausada' ? (actividadActual.motivoPausa || '') : '');
+  document.getElementById('act-observaciones').value = '';
+  document.getElementById('act-duracion').textContent = '-- min';
+  document.getElementById('photoPreviewActa').style.display = 'none';
+  document.getElementById('photoLabelActa').textContent = 'Toca para tomar / subir foto';
+  fotoActividadBase64 = null;
   openModal('modalActividad');
 }
 
@@ -713,18 +781,114 @@ function reportarActividad(){
   if(!horaInicio || !horaFin){ toast('Indica las horas', 'err'); return; }
   
   postData({action:'reportarActividad', actividadID:actividadActual.id, horaInicio:horaInicio, horaFin:horaFin, foto:fotoActividadBase64, observaciones:document.getElementById('act-observaciones').value})
-    .then(function(){ closeModal('modalActividad'); toast('Actividad registrada', 'ok'); refreshActividades(); })
+    .then(function(){ closeModal('modalActividad'); toast('Actividad finalizada', 'ok'); refreshActividades(); })
+    .catch(function(err){ toast('Error: ' + err, 'err'); });
+}
+
+function pausarActividad(){
+  if(!actividadActual) return;
+  var horaInicio = document.getElementById('act-horaInicio').value;
+  var motivoPausa = document.getElementById('act-motivoPausa').value.trim();
+  if(!horaInicio){ toast('Indica la hora de inicio', 'err'); return; }
+  if(!motivoPausa){ toast('Indica el motivo de la pausa', 'err'); return; }
+
+  postData({action:'pausarActividad', actividadID:actividadActual.id, horaInicio:horaInicio, motivoPausa:motivoPausa, foto:fotoActividadBase64, observaciones:document.getElementById('act-observaciones').value})
+    .then(function(){ closeModal('modalActividad'); toast('Actividad pausada', 'ok'); refreshActividades(); })
+    .catch(function(err){ toast('Error: ' + err, 'err'); });
+}
+
+// AUXILIO VIAL
+var fotoAuxilioBase64 = null;
+var auxUbicacion = null;
+
+function pad2(n){ return (n < 10 ? '0' : '') + n; }
+function ahoraTexto(){
+  var d = new Date();
+  return pad2(d.getDate())+'/'+pad2(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad2(d.getHours())+':'+pad2(d.getMinutes());
+}
+function ahoraInputLocal(){
+  var d = new Date();
+  return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())+'T'+pad2(d.getHours())+':'+pad2(d.getMinutes());
+}
+
+function initAuxilio(){
+  document.getElementById('aux-fechaReporte').value = ahoraTexto();
+  if(!document.getElementById('aux-fechaInicio').value){
+    document.getElementById('aux-fechaInicio').value = ahoraInputLocal();
+  }
+}
+
+function obtenerUbicacion(){
+  if(!navigator.geolocation){ toast('Tu dispositivo no soporta GPS', 'err'); return; }
+  document.getElementById('aux-ubicacionLbl').textContent = 'Obteniendo...';
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var lat = pos.coords.latitude.toFixed(6);
+    var lng = pos.coords.longitude.toFixed(6);
+    auxUbicacion = lat + ',' + lng;
+    document.getElementById('aux-ubicacionLbl').textContent = auxUbicacion;
+    var link = document.getElementById('aux-mapaLink');
+    link.href = 'https://www.google.com/maps?q=' + auxUbicacion;
+    link.style.display = 'inline-block';
+  }, function(err){
+    document.getElementById('aux-ubicacionLbl').textContent = 'Sin ubicación';
+    toast('No se pudo obtener ubicación: ' + err.message, 'err');
+  }, { enableHighAccuracy:true, timeout:10000, maximumAge:0 });
+}
+
+document.getElementById('aux-foto').addEventListener('change', function(e){
+  var file = e.target.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var img = new Image();
+    img.onload = function(){
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.min(img.width, 1000);
+      canvas.height = img.height * (canvas.width / img.width);
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      fotoAuxilioBase64 = canvas.toDataURL('image/jpeg', 0.72);
+      var prev = document.getElementById('photoPreviewAux');
+      prev.src = fotoAuxilioBase64;
+      prev.style.display = 'block';
+      document.getElementById('photoLabelAux').textContent = 'Foto lista';
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+function submitAuxilio(){
+  var fechaInicio = document.getElementById('aux-fechaInicio').value;
+  var unidad = document.getElementById('aux-unidad').value;
+  var causa = document.getElementById('aux-causa').value.trim();
+  if(!fechaInicio || !unidad || !causa){ toast('Completa fecha de inicio, unidad y causa', 'err'); return; }
+  if(!auxUbicacion){ toast('Obtén la ubicación GPS antes de registrar', 'err'); return; }
+
+  postData({action:'crearAuxilio', fechaReporte:document.getElementById('aux-fechaReporte').value, fechaInicio:fechaInicio, unidad:unidad, causa:causa, ubicacion:auxUbicacion, foto:fotoAuxilioBase64, idEmpleado:usuarioActual.id, persona:usuarioActual.nombre})
+    .then(function(){
+      toast('Auxilio registrado', 'ok');
+      document.getElementById('aux-causa').value = '';
+      document.getElementById('aux-unidad').value = '';
+      document.getElementById('photoPreviewAux').style.display = 'none';
+      document.getElementById('photoLabelAux').textContent = 'Toca para tomar / subir foto';
+      document.getElementById('aux-ubicacionLbl').textContent = 'Sin ubicación';
+      document.getElementById('aux-mapaLink').style.display = 'none';
+      fotoAuxilioBase64 = null; auxUbicacion = null;
+      initAuxilio();
+    })
     .catch(function(err){ toast('Error: ' + err, 'err'); });
 }
 
 // SUPERVISIÓN
 function crearActividad(){
   var empleado = document.getElementById('sup-empleado').value.trim();
+  var empleado2 = document.getElementById('sup-empleado2').value.trim();
   var descripcion = document.getElementById('sup-descripcion').value.trim();
   if(!empleado || !descripcion){ toast('Completa empleado y descripción', 'err'); return; }
-  
-  postData({action:'crearActividad', idEmpleado:empleado, descripcion:descripcion, tipoServicio:document.getElementById('sup-tipoServicio').value, prioridad:document.getElementById('sup-prioridad').value, unidadAsignada:document.getElementById('sup-unidad').value})
-    .then(function(){ toast('Actividad creada', 'ok'); document.getElementById('sup-empleado').value = ''; document.getElementById('sup-descripcion').value = ''; })
+
+  postData({action:'crearActividad', idEmpleado:empleado, idEmpleado2:empleado2, descripcion:descripcion, tipoServicio:document.getElementById('sup-tipoServicio').value, prioridad:document.getElementById('sup-prioridad').value, unidadAsignada:document.getElementById('sup-unidad').value})
+    .then(function(){ toast(empleado2 ? 'Actividad compartida creada' : 'Actividad creada', 'ok'); document.getElementById('sup-empleado').value = ''; document.getElementById('sup-empleado2').value = ''; document.getElementById('sup-descripcion').value = ''; })
     .catch(function(err){ toast('Error: ' + err, 'err'); });
 }
 
