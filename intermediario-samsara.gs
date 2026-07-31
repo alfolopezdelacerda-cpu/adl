@@ -293,3 +293,35 @@ function verJsonParaNstech() {
   const cuerpo = transformarANstech(JSON.parse(resp.getContentText()));
   Logger.log("[" + AMBIENTE + "]\n" + JSON.stringify(cuerpo, null, 2));
 }
+
+// Arma la SOLICITUD COMPLETA (método, URL, headers y cuerpo) para compartirla
+// con el equipo técnico de NSTech. NO envía nada: solo la muestra en el registro.
+function verSolicitudCompleta() {
+  const tokenSamsara = PropertiesService.getScriptProperties().getProperty("SAMSARA_TOKEN");
+  const resp = UrlFetchApp.fetch(SAMSARA_URL, {
+    method: "get",
+    headers: { "Authorization": "Bearer " + tokenSamsara },
+    muteHttpExceptions: true
+  });
+  const cuerpo = transformarANstech(JSON.parse(resp.getContentText()));
+  const bodyStr = JSON.stringify(cuerpo);
+
+  const accessToken = obtenerTokenNstech();
+  const tokenMostrado = accessToken ? accessToken : "<NO_SE_PUDO_OBTENER_TOKEN>";
+
+  var texto = "";
+  texto += "===== SOLICITUD COMPLETA (" + AMBIENTE + ") =====\n\n";
+  texto += "MÉTODO:  POST\n";
+  texto += "URL:     " + N.positionsUrl + "\n\n";
+  texto += "HEADERS:\n";
+  texto += "  Content-Type: application/json\n";
+  texto += "  Authorization: Bearer " + tokenMostrado + "\n\n";
+  texto += "BODY:\n" + JSON.stringify(cuerpo, null, 2) + "\n\n";
+  texto += "===== EQUIVALENTE EN cURL =====\n";
+  texto += "curl -X POST '" + N.positionsUrl + "' \\\n";
+  texto += "  -H 'Content-Type: application/json' \\\n";
+  texto += "  -H 'Authorization: Bearer " + tokenMostrado + "' \\\n";
+  texto += "  -d '" + bodyStr + "'\n";
+
+  Logger.log(texto);
+}
