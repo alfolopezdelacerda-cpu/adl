@@ -4,7 +4,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { LayoutDashboard, CheckSquare, FileText, Calendar, Users, Bell, Plus, X, Edit2, Trash2, Sun, Moon, Mail, Search, ChevronLeft, ChevronRight, AlertTriangle, Menu, Check, Download, Upload, Shield, MessageSquare } from "lucide-react";
 import { storage } from "../lib/storage";
 
-// ─── Utils ────────────────────────────────────────────────────────
 const uid = () => Math.random().toString(36).slice(2,9);
 const toDay = () => new Date().toISOString().split("T")[0];
 const fmt = d => d ? new Date(d+"T12:00:00").toLocaleDateString("es-MX",{day:"2-digit",month:"short",year:"numeric"}) : "—";
@@ -21,7 +20,6 @@ const INIT_C=[{id:uid(),name:"Alfonso",role:"General Manager",email:"alfonso@adl
 const SK={t:"adlc5-tasks",m:"adlc5-min",c:"adlc5-col",n:"adlc5-notif",a:"adlc5-act"};
 const ADMIN_PASS="0";
 
-// ─── CSV helpers ──────────────────────────────────────────────────
 const dlCSV=(name,data,cols)=>{
   if(!data.length) return;
   const csv=[cols.join(","),...data.map(r=>cols.map(c=>`"${String(r[c]||"").replace(/"/g,'""')}"`).join(","))].join("\n");
@@ -37,7 +35,6 @@ const parseCSV=txt=>{
   });
 };
 
-// ─── Auto email ───────────────────────────────────────────────────
 const autoEmail=(collab,task,type,extra)=>{
   if(!collab?.email) return;
   const sub=type==="assigned"?`ADL Colabora — Nueva tarea: ${task.title}`:type==="status"?`ADL Colabora — Cambio de estatus: ${task.title}`:`ADL Colabora — Cambio de fecha: ${task.title}`;
@@ -47,35 +44,28 @@ const autoEmail=(collab,task,type,extra)=>{
   window.open(`mailto:${collab.email}?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(body)}`,"_blank");
 };
 
-// ─── Theme ────────────────────────────────────────────────────────
 const th=d=>({bg:d?"#0f172a":"#f1f5f9",card:d?"#1e293b":"#ffffff",border:d?"#334155":"#e2e8f0",text:d?"#f1f5f9":"#0f172a",sub:d?"#94a3b8":"#64748b",inp:d?"#0f172a":"#f8fafc",hov:d?"#334155":"#f1f5f9",side:d?"#1e293b":"#ffffff"});
 
-// ─── Toasts ───────────────────────────────────────────────────────
 function Toasts({toasts}){return(<div className="fixed bottom-5 right-5 z-[100] flex flex-col gap-2 pointer-events-none">{toasts.map(to=>(<div key={to.id} className="flex items-center gap-2.5 px-4 py-3 rounded-2xl shadow-2xl text-sm font-medium text-white" style={{background:to.type==="email"?"#3b82f6":to.type==="warn"?"#f59e0b":"#22c55e",minWidth:260,animation:"slideIn .3s ease"}}>{to.type==="email"?"✉️":to.type==="warn"?"⚠️":"✅"} {to.msg}</div>))}</div>);}
 
-// ─── Modal ────────────────────────────────────────────────────────
 function Modal({title,onClose,children,t,wide}){return(<div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{background:"rgba(0,0,0,.65)"}}><div className={`rounded-2xl shadow-2xl w-full ${wide?"max-w-2xl":"max-w-lg"} max-h-[90vh] overflow-y-auto`} style={{background:t.card,border:`1px solid ${t.border}`}}><div className="flex items-center justify-between p-5" style={{borderBottom:`1px solid ${t.border}`}}><h3 className="font-bold text-lg" style={{color:t.text}}>{title}</h3><button onClick={onClose} className="p-1 rounded-lg hover:opacity-70" style={{color:t.sub}}><X size={20}/></button></div><div className="p-5">{children}</div></div></div>);}
 
-// ─── Form helpers ─────────────────────────────────────────────────
 const FI=({label,t,...p})=>(<div className="mb-4">{label&&<label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{color:t.sub}}>{label}</label>}<input className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-blue-500" style={{background:t.inp,borderColor:t.border,color:t.text}} {...p}/></div>);
 const FS=({label,t,opts,...p})=>(<div className="mb-4">{label&&<label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{color:t.sub}}>{label}</label>}<select className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-blue-500" style={{background:t.inp,borderColor:t.border,color:t.text}} {...p}>{opts.map(o=><option key={o.v??o} value={o.v??o}>{o.l??o}</option>)}</select></div>);
 const FT=({label,t,...p})=>(<div className="mb-4">{label&&<label className="block text-xs font-semibold mb-1.5 uppercase tracking-wide" style={{color:t.sub}}>{label}</label>}<textarea className="w-full px-3 py-2.5 rounded-xl border text-sm outline-none focus:ring-2 focus:ring-blue-500 resize-none" rows={3} style={{background:t.inp,borderColor:t.border,color:t.text}} {...p}/></div>);
 const Bdg=({label,color})=>(<span className="px-2 py-0.5 rounded-full text-xs font-semibold" style={{background:color+"22",color}}>{label}</span>);
 
-// ─── AssigneeSelector ─────────────────────────────────────────────
 function AssigneeSelector({collabs,selected,onChange,t}){
   return(<div className="mb-4"><label className="block text-xs font-semibold mb-2 uppercase tracking-wide" style={{color:t.sub}}>Asignados (puede ser compartida entre varios)</label>
     <div className="flex flex-wrap gap-2">{collabs.map(c=>{const sel=selected.includes(c.id);return(<button key={c.id} type="button" onClick={()=>onChange(sel?selected.filter(x=>x!==c.id):[...selected,c.id])} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all" style={{background:sel?c.color:"transparent",color:sel?"white":t.sub,borderColor:c.color}}>{sel&&<Check size={11}/>}{c.name}</button>);})}</div>
   </div>);
 }
 
-// ─── AvatarStack ──────────────────────────────────────────────────
 function AvatarStack({collabs,ids}){
   const shown=ids.slice(0,3),rest=ids.length-3;
   return(<div className="flex items-center">{shown.map((id,i)=>{const c=collabs.find(x=>x.id===id);return c?<div key={id} title={c.name} className="w-5 h-5 rounded-full border border-white flex items-center justify-center text-white font-bold" style={{background:c.color,fontSize:8,marginLeft:i>0?-4:0,zIndex:10-i}}>{c.name[0]}</div>:null;})}{rest>0&&<div className="w-5 h-5 rounded-full border border-white bg-gray-500 flex items-center justify-center text-white font-bold" style={{fontSize:8,marginLeft:-4}}>+{rest}</div>}</div>);
 }
 
-// ─── Dashboard ────────────────────────────────────────────────────
 function DashboardView({tasks,minutas,collabs,t}){
   const total=tasks.length,done=tasks.filter(x=>x.s==="Completado").length,overdue=tasks.filter(x=>x.s==="Vencido").length,inprog=tasks.filter(x=>x.s==="En proceso").length;
   const upcoming=tasks.filter(x=>x.s!=="Completado"&&x.due).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,6);
@@ -99,7 +89,6 @@ function DashboardView({tasks,minutas,collabs,t}){
   );
 }
 
-// ─── Task Detail Modal ────────────────────────────────────────────
 function TaskDetailModal({task,collabs,onClose,onUpdate,t,addNotif,addToast,logActivity}){
   const [status,setStatus]=useState(task.s);
   const [due,setDue]=useState(task.due||"");
@@ -184,7 +173,6 @@ function TaskDetailModal({task,collabs,onClose,onUpdate,t,addNotif,addToast,logA
   );
 }
 
-// ─── Tasks ────────────────────────────────────────────────────────
 function TasksView({tasks,setTasks,collabs,t,addNotif,addToast,logActivity}){
   const [modal,setModal]=useState(null);
   // Guardamos solo el ID para que el modal siempre lea la tarea MÁS RECIENTE del estado
@@ -299,7 +287,6 @@ function TasksView({tasks,setTasks,collabs,t,addNotif,addToast,logActivity}){
   );
 }
 
-// ─── Minutas ──────────────────────────────────────────────────────
 function MinutasView({minutas,setMinutas,tasks,setTasks,collabs,t,addNotif,addToast,logActivity}){
   const [modal,setModal]=useState(null);
   const [view,setView]=useState(null);
@@ -373,7 +360,6 @@ function MinutasView({minutas,setMinutas,tasks,setTasks,collabs,t,addNotif,addTo
   </div>);
 }
 
-// ─── Calendar ─────────────────────────────────────────────────────
 function CalendarView({tasks,collabs,t}){
   const [curr,setCurr]=useState(new Date());const [sel,setSel]=useState(null);
   const yr=curr.getFullYear(),mo=curr.getMonth(),firstDay=new Date(yr,mo,1).getDay(),daysInMo=new Date(yr,mo+1,0).getDate(),pad=n=>String(n).padStart(2,"0"),todayStr=toDay();
@@ -407,7 +393,6 @@ function CalendarView({tasks,collabs,t}){
   </div>);
 }
 
-// ─── Collaborators ────────────────────────────────────────────────
 function CollaboratorsView({collabs,setCollabs,tasks,setTasks,t,addToast,logActivity}){
   const [modal,setModal]=useState(null);
   const blank={name:"",role:"",email:"",color:CCOLS[0]};
@@ -461,7 +446,6 @@ function CollaboratorsView({collabs,setCollabs,tasks,setTasks,t,addToast,logActi
   </div>);
 }
 
-// ─── Reports ──────────────────────────────────────────────────────
 function ReportsView({tasks,collabs,minutas,t}){
   const cStats=collabs.map(c=>{const mine=tasks.filter(x=>getAssignees(x).includes(c.id)),done=mine.filter(x=>x.s==="Completado").length,ov=mine.filter(x=>x.s==="Vencido").length,ip=mine.filter(x=>x.s==="En proceso").length;return{...c,total:mine.length,done,ov,ip,pct:mine.length?Math.round(done/mine.length*100):0};});
   const expTasks=()=>dlCSV("ADL_Tareas.csv",tasks.map(task=>({Título:task.title,Descripción:task.desc||"",Asignados:getAssignees(task).map(id=>collabs.find(c=>c.id===id)?.name||"").filter(Boolean).join("; "),Prioridad:task.priority,Estatus:task.s,"Fecha compromiso":task.due||"",Creado:task.createdAt||"",Comentarios:(task.comments||[]).length,"Cambios de fecha":(task.dateChanges||[]).length})),["Título","Descripción","Asignados","Prioridad","Estatus","Fecha compromiso","Creado","Comentarios","Cambios de fecha"]);
@@ -503,7 +487,6 @@ function ReportsView({tasks,collabs,minutas,t}){
   </div>);
 }
 
-// ─── Admin ────────────────────────────────────────────────────────
 function AdminView({tasks,collabs,minutas,notifs,activity,t}){
   const [auth,setAuth]=useState(false);
   const [pass,setPass]=useState("");
@@ -586,7 +569,6 @@ function AdminView({tasks,collabs,minutas,notifs,activity,t}){
   </div>);
 }
 
-// ─── Main App ─────────────────────────────────────────────────────
 export default function App(){
   const [view,setView]=useState("dashboard");
   const [tasks,setTasks]=useState([]);
