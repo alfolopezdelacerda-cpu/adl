@@ -87,6 +87,11 @@ const MAPEO_DEVICE_ID = {
   // "Nombre en Samsara": "device_id en NSTech",
 };
 
+// -- EVENTOS / ALERTAS --
+// Valor de event_type que espera NSTech para el BOTÓN DE PÁNICO.
+// OJO: CONFIRMAR con Thiago el valor exacto de su catálogo (aquí va un supuesto).
+const EVENT_TYPE_PANICO = "PanicButton";
+
 
 /* ===========================================================================
  *  3) GUARDAR CREDENCIALES  (ejecutar UNA sola vez cada una)
@@ -243,7 +248,113 @@ function transformarANstech(datosSamsara) {
 
 
 /* ===========================================================================
- *  7) UTILIDADES
+ *  7) EVENTOS / ALERTAS  (botón de pánico)
+ * ---------------------------------------------------------------------------
+ *  Las alertas son urgentes: Samsara nos AVISA en el momento (webhook) y las
+ *  reenviamos de inmediato a NSTech. Este bloque tiene:
+ *    - construirEventoNstech(): arma un evento en el formato de NSTech.
+ *    - enviarEventosANstech():  lo entrega en el endpoint /events de NSTech.
+ *    - probarEventoPanico():    prueba el endpoint de eventos SIN Samsara.
+ *    - doPost():                recibe el aviso de Samsara y lo reenvía.
+ * ========================================================================= */
+
+// Arma un evento con la estructura exacta que pide NSTech.
+function construirEventoNstech(deviceId, fechaISO, latitud, longitud, eventType, detalles) {
+  return {
+    "technology_id": N.technologyId,
+    "account_id":    N.accountId,
+    "date":          fechaISO,                 // ej. 2026-08-13T14:34:32.882Z
+    "device_id":     deviceId,
+    "event_type":    eventType,
+    "latitude":      Number(latitud),          // número, no texto
+    "longitude":     Number(longitud),         // número, no texto
+    "payload":       JSON.stringify(detalles || {})
+  };
+}
+
+// Entrega uno o varios eventos en el endpoint /events de NSTech.
+function enviarEventosANstech(listaEventos) {
+  const accessToken = obtenerTokenNstech();
+  if (!accessToken) return null;
+
+  const envio = UrlFetchApp.fetch(N.eventsUrl, {
+    method: "post",
+    contentType: "application/json",
+    headers: { "Authorization": "Bearer " + accessToken },
+    payload: JSON.stringify({ "events": listaEventos }),
+    muteHttpExceptions: true
+  });
+
+  Logger.log("[" + AMBIENTE + "] Eventos: Respuesta " + envio.getResponseCode() +
+             ": " + envio.getContentText());
+  return envio;
+}
+
+// PRUEBA: envía a NSTech un evento de botón de pánico de EJEMPLO (sin Samsara).
+// Sirve para validar el endpoint de eventos igual que hicimos con posiciones.
+function probarEventoPanico() {
+  const evento = construirEventoNstech(
+    "TR09",                                     // device_id de prueba
+    new Date().toISOString(),                   // fecha/hora actual
+    19.432608,                                  // latitud de ejemplo
+    -99.133209,                                 // longitud de ejemplo
+    EVENT_TYPE_PANICO,
+    { "descripcion": "Botón de pánico activado", "origen": "prueba" }
+  );
+  enviarEventosANstech([evento]);
+}
+
+// Muestra el JSON de evento de pánico SIN enviarlo (para revisar / mandar a Thiago).
+function verJsonEventoPanico() {
+  const evento = construirEventoNstech(
+    "TR09", new Date().toISOString(), 19.432608, -99.133209,
+    EVENT_TYPE_PANICO, { "descripcion": "Botón de pánico activado", "origen": "prueba" }
+  );
+  Logger.log("[" + AMBIENTE + "]\n" + JSON.stringify({ "events": [evento] }, null, 2));
+}
+
+/**
+ * Recibe el aviso de Samsara cuando se activa una alerta (webhook) y lo reenvía
+ * a NSTech. Para que funcione hay que PUBLICAR este script como "Aplicación web"
+ * y poner esa URL en la alerta de Samsara. (Fase 2 — ver instrucciones.)
+ *
+ * NOTA: el formato exacto que manda Samsara lo confirmaremos con un pánico real;
+ * por eso guardamos el contenido crudo en el registro para ajustarlo.
+ */
+function doPost(e) {
+  try {
+    const crudo = (e && e.postData && e.postData.contents) ? e.postData.contents : "{}";
+    Logger.log("Webhook recibido de Samsara: " + crudo);
+
+    const datos = JSON.parse(crudo);
+
+    // Extracción best-effort (se afinará al ver un pánico real de Samsara).
+    const d = datos.data || datos;
+    const vehiculo = d.vehicle || d.device || {};
+    const gps      = d.gps || d.location || {};
+
+    const nombre   = vehiculo.name || vehiculo.id || "DESCONOCIDO";
+    const deviceId = MAPEO_DEVICE_ID[nombre] || nombre;
+    const fecha    = datos.eventTime || d.time || gps.time || new Date().toISOString();
+    const lat      = gps.latitude != null ? gps.latitude : 0;
+    const lng      = gps.longitude != null ? gps.longitude : 0;
+
+    const evento = construirEventoNstech(
+      deviceId, fecha, lat, lng, EVENT_TYPE_PANICO,
+      { "descripcion": "Botón de pánico", "origen": "samsara", "crudo": datos }
+    );
+
+    enviarEventosANstech([evento]);
+    return ContentService.createTextOutput("OK");
+  } catch (err) {
+    Logger.log("Error en doPost: " + err);
+    return ContentService.createTextOutput("ERROR");
+  }
+}
+
+
+/* ===========================================================================
+ *  8) UTILIDADES
  * ========================================================================= */
 
 // Prueba el flujo completo una vez (revisa Ver > Registros).
