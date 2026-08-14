@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #f2f3ef;
+  --color-surface: #ffffff;
+  --color-ink: #232a2e;
+  --color-muted: #6b7580;
+  --color-line: #dee3dd;
+  --color-amber: #c97a0f;
+}
+
+html,
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+}
