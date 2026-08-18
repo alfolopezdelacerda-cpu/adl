@@ -318,6 +318,41 @@ function verJsonEventoPanico() {
   Logger.log("[" + AMBIENTE + "]\n" + JSON.stringify({ "events": [evento] }, null, 2));
 }
 
+// Busca el objeto "vehicle" dentro de la alerta de Samsara (viene anidado en
+// conditions -> details -> <tipo> -> vehicle). Devuelve el vehículo o null.
+function extraerVehiculoDeAlerta(data) {
+  const conds = (data && data.conditions) || [];
+  for (var i = 0; i < conds.length; i++) {
+    const det = conds[i].details || {};
+    for (var clave in det) {
+      if (det[clave] && det[clave].vehicle) {
+        return det[clave].vehicle;
+      }
+    }
+  }
+  return null;
+}
+
+// Pide a Samsara la ubicación actual de un vehículo por su id.
+// Devuelve { time, latitude, longitude, ... } o null si no se pudo.
+function obtenerUbicacionVehiculo(vehicleId) {
+  if (!vehicleId) return null;
+  const token = PropertiesService.getScriptProperties().getProperty("SAMSARA_TOKEN");
+  const url = "https://api.samsara.com/fleet/vehicles/stats?types=gps&vehicleIds=" +
+              encodeURIComponent(vehicleId);
+  const resp = UrlFetchApp.fetch(url, {
+    method: "get",
+    headers: { "Authorization": "Bearer " + token },
+    muteHttpExceptions: true
+  });
+  if (resp.getResponseCode() !== 200) {
+    Logger.log("No se pudo obtener la ubicación del vehículo: " + resp.getContentText());
+    return null;
+  }
+  const arr = (JSON.parse(resp.getContentText()).data) || [];
+  return (arr.length > 0 && arr[0].gps) ? arr[0].gps : null;
+}
+
 /**
  * Recibe el aviso de Samsara cuando se activa una alerta (webhook) y lo reenvía
  * a NSTech. Para que funcione hay que PUBLICAR este script como "Aplicación web"
@@ -340,29 +375,26 @@ function doPost(e) {
     );
 
     const datos = JSON.parse(crudo);
+    const data = datos.data || {};
 
-    // Extracción best-effort (se afinará al ver un pánico real de Samsara).
-    const d = datos.data || datos;
-    const vehiculo = d.vehicle || d.device || {};
-    const gps      = d.gps || d.location || {};
-
-    // Si Samsara manda un aviso de PRUEBA/validación (sin datos de vehículo ni
-    // ubicación), solo lo registramos y NO lo reenviamos como pánico a NSTech.
-    const tieneVehiculo = !!(vehiculo.name || vehiculo.id);
-    const tieneGps = (gps.latitude != null && gps.longitude != null);
-    if (!tieneVehiculo && !tieneGps) {
-      Logger.log("Aviso de prueba/validación de Samsara (sin datos). No se reenvía a NSTech.");
+    // El vehículo viene anidado dentro de conditions -> details.
+    const vehiculo = extraerVehiculoDeAlerta(data);
+    if (!vehiculo) {
+      Logger.log("Aviso sin datos de vehículo (posible prueba). No se reenvía a NSTech.");
       return ContentService.createTextOutput("OK");
     }
 
-    const nombre   = vehiculo.name || vehiculo.id || "DESCONOCIDO";
+    const nombre   = vehiculo.name || vehiculo.id;
     const deviceId = MAPEO_DEVICE_ID[nombre] || nombre;
-    const fecha    = datos.eventTime || d.time || gps.time || new Date().toISOString();
-    const lat      = gps.latitude != null ? gps.latitude : 0;
-    const lng      = gps.longitude != null ? gps.longitude : 0;
+    const fecha    = data.happenedAtTime || datos.eventTime || new Date().toISOString();
 
-    // Botón de pánico: sin payload (opcional). Se agregaría solo para otros
-    // tipos de evento que sí lo requieran.
+    // Samsara NO manda la ubicación en la alerta: la pedimos a su API con el id
+    // del vehículo, para que el pánico llegue a NSTech con coordenadas reales.
+    const gps = obtenerUbicacionVehiculo(vehiculo.id) || {};
+    const lat = (gps.latitude  != null) ? gps.latitude  : 0;
+    const lng = (gps.longitude != null) ? gps.longitude : 0;
+
+    // Botón de pánico: sin payload (opcional).
     const evento = construirEventoNstech(
       deviceId, fecha, lat, lng, EVENT_TYPE_PANICO
     );
