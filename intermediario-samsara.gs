@@ -259,17 +259,23 @@ function transformarANstech(datosSamsara) {
  * ========================================================================= */
 
 // Arma un evento con la estructura exacta que pide NSTech.
+// El "payload" es OPCIONAL: para el botón de pánico NSTech no lo exige, así que
+// si no se pasan "detalles", el campo payload NO se incluye.
 function construirEventoNstech(deviceId, fechaISO, latitud, longitud, eventType, detalles) {
-  return {
+  const evento = {
     "technology_id": N.technologyId,
     "account_id":    N.accountId,
     "date":          fechaISO,                 // ej. 2026-08-13T14:34:32.882Z
     "device_id":     deviceId,
     "event_type":    eventType,
     "latitude":      Number(latitud),          // número, no texto
-    "longitude":     Number(longitud),         // número, no texto
-    "payload":       JSON.stringify(detalles || {})
+    "longitude":     Number(longitud)          // número, no texto
   };
+  // Solo se agrega payload si hace falta (para eventos que sí lo requieren).
+  if (detalles) {
+    evento.payload = (typeof detalles === "string") ? detalles : JSON.stringify(detalles);
+  }
+  return evento;
 }
 
 // Entrega uno o varios eventos en el endpoint /events de NSTech.
@@ -293,13 +299,13 @@ function enviarEventosANstech(listaEventos) {
 // PRUEBA: envía a NSTech un evento de botón de pánico de EJEMPLO (sin Samsara).
 // Sirve para validar el endpoint de eventos igual que hicimos con posiciones.
 function probarEventoPanico() {
+  // Para el botón de pánico NO se envía payload (es opcional según NSTech).
   const evento = construirEventoNstech(
     "TR09",                                     // device_id de prueba
     new Date().toISOString(),                   // fecha/hora actual
     19.432608,                                  // latitud de ejemplo
     -99.133209,                                 // longitud de ejemplo
-    EVENT_TYPE_PANICO,
-    { "descripcion": "Botón de pánico activado", "origen": "prueba" }
+    EVENT_TYPE_PANICO
   );
   enviarEventosANstech([evento]);
 }
@@ -307,8 +313,7 @@ function probarEventoPanico() {
 // Muestra el JSON de evento de pánico SIN enviarlo (para revisar / mandar a Thiago).
 function verJsonEventoPanico() {
   const evento = construirEventoNstech(
-    "TR09", new Date().toISOString(), 19.432608, -99.133209,
-    EVENT_TYPE_PANICO, { "descripcion": "Botón de pánico activado", "origen": "prueba" }
+    "TR09", new Date().toISOString(), 19.432608, -99.133209, EVENT_TYPE_PANICO
   );
   Logger.log("[" + AMBIENTE + "]\n" + JSON.stringify({ "events": [evento] }, null, 2));
 }
@@ -339,9 +344,10 @@ function doPost(e) {
     const lat      = gps.latitude != null ? gps.latitude : 0;
     const lng      = gps.longitude != null ? gps.longitude : 0;
 
+    // Botón de pánico: sin payload (opcional). Se agregaría solo para otros
+    // tipos de evento que sí lo requieran.
     const evento = construirEventoNstech(
-      deviceId, fecha, lat, lng, EVENT_TYPE_PANICO,
-      { "descripcion": "Botón de pánico", "origen": "samsara", "crudo": datos }
+      deviceId, fecha, lat, lng, EVENT_TYPE_PANICO
     );
 
     enviarEventosANstech([evento]);
