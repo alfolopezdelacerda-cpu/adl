@@ -331,6 +331,14 @@ function doPost(e) {
     const crudo = (e && e.postData && e.postData.contents) ? e.postData.contents : "{}";
     Logger.log("Webhook recibido de Samsara: " + crudo);
 
+    // Guardamos el último aviso recibido para poder revisarlo a mano después
+    // (con la función verUltimoWebhook), ya que el registro de ejecuciones
+    // externas no siempre se puede abrir.
+    PropertiesService.getScriptProperties().setProperty(
+      "ULTIMO_WEBHOOK",
+      new Date().toISOString() + "\n" + crudo
+    );
+
     const datos = JSON.parse(crudo);
 
     // Extracción best-effort (se afinará al ver un pánico real de Samsara).
@@ -395,6 +403,17 @@ function desactivarAutomatico() {
     }
   });
   Logger.log("Automático desactivado.");
+}
+
+// Muestra el ÚLTIMO aviso (webhook) que Samsara envió a este script.
+// Útil para ver el contenido real cuando la pantalla de Ejecuciones no lo abre.
+function verUltimoWebhook() {
+  const ultimo = PropertiesService.getScriptProperties().getProperty("ULTIMO_WEBHOOK");
+  if (!ultimo) {
+    Logger.log("Todavía no se ha recibido ningún webhook de Samsara.");
+    return;
+  }
+  Logger.log("===== ÚLTIMO WEBHOOK RECIBIDO DE SAMSARA =====\n" + ultimo);
 }
 
 // Muestra lo que devuelve Samsara (útil para revisar nombres de unidades).
