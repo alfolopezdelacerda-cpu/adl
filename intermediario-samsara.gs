@@ -283,6 +283,12 @@ function enviarEventosANstech(listaEventos) {
   const accessToken = obtenerTokenNstech();
   if (!accessToken) return null;
 
+  // Guardamos el último evento enviado para poder mostrárselo a NSTech después.
+  PropertiesService.getScriptProperties().setProperty(
+    "ULTIMO_EVENTO_ENVIADO",
+    JSON.stringify({ "events": listaEventos }, null, 2)
+  );
+
   const envio = UrlFetchApp.fetch(N.eventsUrl, {
     method: "post",
     contentType: "application/json",
@@ -435,6 +441,16 @@ function desactivarAutomatico() {
     }
   });
   Logger.log("Automático desactivado.");
+}
+
+// Muestra el ÚLTIMO evento (pánico) que se envió a NSTech, para compartirlo.
+function verUltimoEventoEnviado() {
+  const ultimo = PropertiesService.getScriptProperties().getProperty("ULTIMO_EVENTO_ENVIADO");
+  if (!ultimo) {
+    Logger.log("Todavía no se ha enviado ningún evento a NSTech.");
+    return;
+  }
+  Logger.log("===== ÚLTIMO EVENTO ENVIADO A NSTECH (" + AMBIENTE + ") =====\n" + ultimo);
 }
 
 // Muestra el ÚLTIMO aviso (webhook) que Samsara envió a este script.
