@@ -338,6 +338,15 @@ function doPost(e) {
     const vehiculo = d.vehicle || d.device || {};
     const gps      = d.gps || d.location || {};
 
+    // Si Samsara manda un aviso de PRUEBA/validación (sin datos de vehículo ni
+    // ubicación), solo lo registramos y NO lo reenviamos como pánico a NSTech.
+    const tieneVehiculo = !!(vehiculo.name || vehiculo.id);
+    const tieneGps = (gps.latitude != null && gps.longitude != null);
+    if (!tieneVehiculo && !tieneGps) {
+      Logger.log("Aviso de prueba/validación de Samsara (sin datos). No se reenvía a NSTech.");
+      return ContentService.createTextOutput("OK");
+    }
+
     const nombre   = vehiculo.name || vehiculo.id || "DESCONOCIDO";
     const deviceId = MAPEO_DEVICE_ID[nombre] || nombre;
     const fecha    = datos.eventTime || d.time || gps.time || new Date().toISOString();
