@@ -71,7 +71,7 @@
 
   label{display:block;font-size:12.5px;font-weight:700;color:var(--ink);margin:12px 0 6px;}
   label .req{color:var(--danger);}
-  input[type=text], input[type=number], input[type=time], input[type=datetime-local], input[type=password], textarea, select{
+  input[type=text], input[type=number], input[type=time], input[type=date], input[type=datetime-local], input[type=password], textarea, select{
     width:100%;border:1.5px solid var(--border);border-radius:10px;padding:11px 12px;
     font-size:15px;background:#FCFCFB;color:var(--ink);font-family:inherit;
   }
@@ -318,11 +318,51 @@
     </div>
   </section>
 
-  <!-- SUPERVISIÓN -->
-  <section class="panel" id="panel-supervision">
-    <div class="section-title">Panel de supervisión</div>
+  <!-- GESTIÓN DE USUARIOS -->
+  <section class="panel" id="panel-usuarios">
+    <div class="section-title">Gestión de usuarios</div>
     <div class="card">
-      <h3 style="margin:0 0 12px;font-size:14px;">Crear actividad</h3>
+      <h3 style="margin:0 0 12px;font-size:14px;">Crear usuario</h3>
+      <label>ID Empleado <span class="req">*</span></label>
+      <input type="text" id="usr-id" placeholder="Ej: 001">
+      <label>Nombre <span class="req">*</span></label>
+      <input type="text" id="usr-nombre" placeholder="Nombre completo">
+      <label>Contraseña <span class="req">*</span></label>
+      <input type="password" id="usr-pwd" placeholder="••••••">
+      <label>Jerarquía / Rol</label>
+      <select id="usr-rol">
+        <option value="mecanico_b">Mecánico B</option>
+        <option value="mecanico_a">Mecánico A</option>
+        <option value="electromecanico">Electromecánico</option>
+        <option value="supervisor">Supervisor</option>
+      </select>
+      <button class="btn supervision" onclick="crearUsuario()">Crear usuario</button>
+    </div>
+
+    <div class="card">
+      <h3 style="margin:0 0 12px;font-size:14px;">Editar usuario</h3>
+      <label>ID del empleado a editar <span class="req">*</span></label>
+      <input type="text" id="edit-id" placeholder="Ej: 001">
+      <label>Nueva contraseña <span class="req" style="font-size:11px;">(opcional)</span></label>
+      <input type="password" id="edit-pwd" placeholder="Dejar vacío para no cambiar">
+      <label>Nueva jerarquía / rol <span class="req" style="font-size:11px;">(opcional)</span></label>
+      <select id="edit-rol">
+        <option value="">— No cambiar —</option>
+        <option value="mecanico_b">Mecánico B</option>
+        <option value="mecanico_a">Mecánico A</option>
+        <option value="electromecanico">Electromecánico</option>
+        <option value="supervisor">Supervisor</option>
+      </select>
+      <button class="btn supervision" onclick="actualizarUsuario()">Actualizar usuario</button>
+    </div>
+
+    <div id="usuariosListado"></div>
+  </section>
+
+  <!-- CREACIÓN DE ACTIVIDADES -->
+  <section class="panel" id="panel-crear">
+    <div class="section-title">Creación de actividades</div>
+    <div class="card">
       <label>Empleado 1 <span class="req">*</span></label>
       <input type="text" id="sup-empleado" placeholder="ID del empleado">
       <label>Empleado 2 <span class="req" style="font-size:11px;">(opcional · actividad compartida)</span></label>
@@ -354,26 +394,27 @@
           <input type="text" id="sup-unidad" placeholder="Ej: TR01">
         </div>
       </div>
+      <label>Fecha programada <span class="req" style="font-size:11px;">(opcional)</span></label>
+      <input type="date" id="sup-fecha">
+      <div class="row2">
+        <div>
+          <label>Hora inicio <span class="req" style="font-size:11px;">(opcional)</span></label>
+          <input type="time" id="sup-horaInicio">
+        </div>
+        <div>
+          <label>Hora fin <span class="req" style="font-size:11px;">(opcional)</span></label>
+          <input type="time" id="sup-horaFin">
+        </div>
+      </div>
       <button class="btn supervision" onclick="crearActividad()">Crear actividad</button>
     </div>
+  </section>
 
-    <div class="section-title" style="margin-top:24px;">Gestión de usuarios</div>
-    <div class="card">
-      <label>ID Empleado <span class="req">*</span></label>
-      <input type="text" id="usr-id" placeholder="Ej: 001">
-      <label>Nombre <span class="req">*</span></label>
-      <input type="text" id="usr-nombre" placeholder="Nombre completo">
-      <label>Contraseña <span class="req">*</span></label>
-      <input type="password" id="usr-pwd" placeholder="••••••">
-      <label>Rol</label>
-      <select id="usr-rol">
-        <option value="mecanico">Mecánico</option>
-        <option value="supervisor">Supervisor</option>
-      </select>
-      <button class="btn supervision" onclick="crearUsuario()">Crear usuario</button>
-    </div>
-
-    <div id="usuariosListado"></div>
+  <!-- SUPERVISIÓN DE ACTIVIDADES -->
+  <section class="panel" id="panel-supervision">
+    <div class="section-title">Supervisión de actividades</div>
+    <button class="btn ghost small" style="width:100%;margin:0 0 10px;" onclick="loadSupervision(true)">↻ Actualizar avances</button>
+    <div id="supervisionListado"></div>
   </section>
 
   <!-- DASHBOARD -->
@@ -407,9 +448,17 @@
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v6m0 0l3-3m-3 3L9 5M5 12a7 7 0 0 0 14 0M12 22v-4"/><circle cx="12" cy="12" r="2"/></svg>
     AUXILIO
   </div>
+  <div class="tab" id="tab-usuarios" onclick="switchTab('usuarios')" style="display:none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    USUARIOS
+  </div>
+  <div class="tab" id="tab-crear" onclick="switchTab('crear')" style="display:none;">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M12 8v8M8 12h8"/></svg>
+    CREAR
+  </div>
   <div class="tab" id="tab-supervision" onclick="switchTab('supervision')" style="display:none;">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-    SUPERVISION
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+    AVANCES
   </div>
   <div class="tab" id="tab-dashboard" onclick="switchTab('dashboard')" style="display:none;">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
@@ -487,6 +536,46 @@
   </div>
 </div>
 
+<!-- Modal Modificar Actividad (Supervisor) -->
+<div class="modal-overlay" id="modalModificar">
+  <div class="modal-sheet">
+    <h2>Modificar actividad</h2>
+    <p class="sub" id="modTitle"></p>
+    <label>Descripción</label>
+    <textarea id="mod-descripcion"></textarea>
+    <div class="row2">
+      <div>
+        <label>Prioridad</label>
+        <select id="mod-prioridad">
+          <option value="baja">Baja</option>
+          <option value="media">Media</option>
+          <option value="alta">Alta</option>
+        </select>
+      </div>
+      <div>
+        <label>Unidad</label>
+        <input type="text" id="mod-unidad" placeholder="Ej: TR01">
+      </div>
+    </div>
+    <label>Fecha programada</label>
+    <input type="date" id="mod-fecha">
+    <div class="row2">
+      <div>
+        <label>Hora inicio</label>
+        <input type="time" id="mod-horaInicio">
+      </div>
+      <div>
+        <label>Hora fin</label>
+        <input type="time" id="mod-horaFin">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn ghost" onclick="closeModal('modalModificar')">Cancelar</button>
+      <button class="btn supervision" onclick="guardarModificar()">Guardar cambios</button>
+    </div>
+  </div>
+</div>
+
 <script>
 var WEBAPP_URL = "https://script.google.com/macros/s/AKfycbwr7MDDzENo9IM1vP4u0KHrZsz7vTdlGlvz57JNvpx0FboCyEEhdOf8NOWifwNmBubW/exec";
 var usuarioActual = null;
@@ -525,16 +614,21 @@ function initApp(){
     document.getElementById('tab-salida').style.display = 'none';
     document.getElementById('tab-actividades').style.display = 'none';
     document.getElementById('tab-auxilio').style.display = 'none';
+    document.getElementById('tab-usuarios').style.display = 'flex';
+    document.getElementById('tab-crear').style.display = 'flex';
     document.getElementById('tab-supervision').style.display = 'flex';
     document.getElementById('tab-dashboard').style.display = 'flex';
     switchTab('supervision');
     refreshDashboard();
     listarUsuarios();
+    loadSupervision();
   } else {
     document.getElementById('tab-entrada').style.display = 'flex';
     document.getElementById('tab-salida').style.display = 'flex';
     document.getElementById('tab-actividades').style.display = 'flex';
     document.getElementById('tab-auxilio').style.display = 'flex';
+    document.getElementById('tab-usuarios').style.display = 'none';
+    document.getElementById('tab-crear').style.display = 'none';
     document.getElementById('tab-supervision').style.display = 'none';
     document.getElementById('tab-dashboard').style.display = 'none';
     switchTab('entrada');
@@ -584,7 +678,7 @@ function toast(msg, type){
 }
 
 function switchTab(name){
-  ['entrada','salida','actividades','auxilio','supervision','dashboard'].forEach(function(t){
+  ['entrada','salida','actividades','auxilio','usuarios','crear','supervision','dashboard'].forEach(function(t){
     document.getElementById('panel-'+t).classList.toggle('active', t===name);
     var tab = document.getElementById('tab-'+t);
     if(tab) tab.classList.toggle('active', t===name);
@@ -593,6 +687,8 @@ function switchTab(name){
   if(name==='dashboard') refreshDashboard();
   if(name==='salida') renderSalida();
   if(name==='auxilio') initAuxilio();
+  if(name==='usuarios') listarUsuarios();
+  if(name==='supervision') loadSupervision();
 }
 
 function openModal(id){ document.getElementById(id).classList.add('show'); }
@@ -880,26 +976,52 @@ function submitAuxilio(){
     .catch(function(err){ toast('Error: ' + err, 'err'); });
 }
 
-// SUPERVISIÓN
+// ===== SUPERVISOR =====
+function roleLabel(r){
+  var m = {mecanico_b:'Mecánico B', mecanico_a:'Mecánico A', electromecanico:'Electromecánico', supervisor:'Supervisor', admin:'Admin', mecanico:'Mecánico'};
+  return m[r] || r || '';
+}
+function hhmm(v){ v = String(v||''); return /^\d{1,2}:\d{2}/.test(v) ? v.substring(0,5) : ''; }
+function toDateInput(v){ v = String(v||''); return /^\d{4}-\d{2}-\d{2}/.test(v) ? v.substring(0,10) : ''; }
+
+// --- Creación de actividades ---
 function crearActividad(){
   var empleado = document.getElementById('sup-empleado').value.trim();
   var empleado2 = document.getElementById('sup-empleado2').value.trim();
   var descripcion = document.getElementById('sup-descripcion').value.trim();
   if(!empleado || !descripcion){ toast('Completa empleado y descripción', 'err'); return; }
 
-  postData({action:'crearActividad', idEmpleado:empleado, idEmpleado2:empleado2, descripcion:descripcion, tipoServicio:document.getElementById('sup-tipoServicio').value, prioridad:document.getElementById('sup-prioridad').value, unidadAsignada:document.getElementById('sup-unidad').value})
-    .then(function(){ toast(empleado2 ? 'Actividad compartida creada' : 'Actividad creada', 'ok'); document.getElementById('sup-empleado').value = ''; document.getElementById('sup-empleado2').value = ''; document.getElementById('sup-descripcion').value = ''; })
+  postData({action:'crearActividad', idEmpleado:empleado, idEmpleado2:empleado2, descripcion:descripcion, tipoServicio:document.getElementById('sup-tipoServicio').value, prioridad:document.getElementById('sup-prioridad').value, unidadAsignada:document.getElementById('sup-unidad').value, fechaProgramada:document.getElementById('sup-fecha').value, horaProgInicio:document.getElementById('sup-horaInicio').value, horaProgFin:document.getElementById('sup-horaFin').value})
+    .then(function(){
+      toast(empleado2 ? 'Actividad compartida creada' : 'Actividad creada', 'ok');
+      document.getElementById('sup-empleado').value = ''; document.getElementById('sup-empleado2').value = '';
+      document.getElementById('sup-descripcion').value = ''; document.getElementById('sup-unidad').value = '';
+      document.getElementById('sup-fecha').value = ''; document.getElementById('sup-horaInicio').value = ''; document.getElementById('sup-horaFin').value = '';
+    })
     .catch(function(err){ toast('Error: ' + err, 'err'); });
 }
 
+// --- Gestión de usuarios ---
 function crearUsuario(){
   var id = document.getElementById('usr-id').value.trim();
   var nombre = document.getElementById('usr-nombre').value.trim();
   var pwd = document.getElementById('usr-pwd').value.trim();
   if(!id || !nombre || !pwd){ toast('Completa todos los campos', 'err'); return; }
-  
+
   postData({action:'crearUsuario', idEmpleado:id, nombre:nombre, contrasena:pwd, rol:document.getElementById('usr-rol').value})
     .then(function(){ toast('Usuario creado', 'ok'); document.getElementById('usr-id').value = ''; document.getElementById('usr-nombre').value = ''; document.getElementById('usr-pwd').value = ''; listarUsuarios(); })
+    .catch(function(err){ toast('Error: ' + err, 'err'); });
+}
+
+function actualizarUsuario(){
+  var id = document.getElementById('edit-id').value.trim();
+  var pwd = document.getElementById('edit-pwd').value.trim();
+  var rol = document.getElementById('edit-rol').value;
+  if(!id){ toast('Indica el ID del empleado', 'err'); return; }
+  if(!pwd && !rol){ toast('Indica nueva contraseña o nuevo rol', 'err'); return; }
+
+  postData({action:'actualizarUsuario', idEmpleado:id, contrasena:pwd, rol:rol})
+    .then(function(){ toast('Usuario actualizado', 'ok'); document.getElementById('edit-id').value=''; document.getElementById('edit-pwd').value=''; document.getElementById('edit-rol').value=''; listarUsuarios(); })
     .catch(function(err){ toast('Error: ' + err, 'err'); });
 }
 
@@ -908,10 +1030,87 @@ function listarUsuarios(){
     if(res && res.success && res.usuarios){
       var cont = document.getElementById('usuariosListado');
       cont.innerHTML = '<div class="section-title">Usuarios registrados</div><div class="card">'+
-        res.usuarios.map(function(u){ return '<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;"><span><strong>'+u.nombre+'</strong><br><span style="font-size:11px;color:var(--muted);">'+u.idEmpleado+' · '+u.rol+'</span></span></div>'; }).join('')+
+        res.usuarios.map(function(u){ return '<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;"><span><strong>'+u.nombre+'</strong><br><span style="font-size:11px;color:var(--muted);">'+u.idEmpleado+' · '+roleLabel(u.rol)+'</span></span></div>'; }).join('')+
       '</div>';
     }
   }).catch(function(err){ });
+}
+
+// --- Supervisión de actividades ---
+var todasActs = [];
+var modActId = null;
+
+function loadSupervision(manual){
+  jsonp({action:'todasActividades'}).then(function(res){
+    if(res && res.success){ todasActs = res.data || []; renderSupervision(); if(manual) toast('Avances actualizados', 'ok'); }
+  }).catch(function(err){ toast('Error: ' + err, 'err'); });
+}
+
+function renderSupervision(){
+  var cont = document.getElementById('supervisionListado');
+  if(!todasActs.length){ cont.innerHTML = '<div class="empty-state">No hay actividades registradas.</div>'; return; }
+  todasActs.sort(function(a,b){
+    var orden = {pendiente:0, pausada:1, completada:2};
+    return (orden[a.estado]||3) - (orden[b.estado]||3);
+  });
+  cont.innerHTML = todasActs.map(function(a){
+    var idEsc = String(a.id).replace(/'/g,"\\'");
+    return '<div class="activity-card '+(a.estado==='completada'?'completed':'')+(a.estado==='pausada'?' pausada':'')+(a.prioridad==='alta'?' priority-alta':'')+'">'+
+      '<h3><span class="badge priority-'+a.prioridad+'">'+String(a.prioridad||'').toUpperCase()+'</span><span class="badge estado-'+a.estado+'">'+String(a.estado||'').toUpperCase()+'</span></h3>'+
+      '<p style="font-weight:700;margin-top:6px;">'+a.descripcion+'</p>'+
+      '<p>Asignada a: '+a.idEmpleado+(a.idEmpleado2 ? ' + '+a.idEmpleado2 : '')+'</p>'+
+      '<p>Tipo: '+a.tipoServicio+' · Unidad: '+(a.unidadAsignada||'-')+'</p>'+
+      (a.fechaProgramada ? '<p>Programada: '+a.fechaProgramada+' '+(hhmm(a.horaProgInicio))+(a.horaProgFin ? (' - '+hhmm(a.horaProgFin)) : '')+'</p>' : '')+
+      (a.horaInicio ? '<p>Inicio real: '+hhmm(a.horaInicio)+(a.horaFin ? (' · Fin: '+hhmm(a.horaFin)) : '')+'</p>' : '')+
+      (a.duracionMin ? '<p>Duración: '+a.duracionMin+' min</p>' : '')+
+      (a.estado==='pausada' && a.motivoPausa ? '<p style="color:var(--amber);font-weight:700;">⏸ Pausa: '+a.motivoPausa+'</p>' : '')+
+      (a.observaciones ? '<p>Obs. mecánico: '+a.observaciones+'</p>' : '')+
+      (a.comentarios ? '<p style="color:var(--supervision);font-weight:700;">💬 '+a.comentarios+'</p>' : '')+
+      '<div class="actions">'+
+        '<button class="btn small" style="background:var(--supervision);color:#fff;" onclick="comentarActividad(\''+idEsc+'\')">Comentar</button>'+
+        '<button class="btn small" style="background:var(--amber);color:#fff;" onclick="abrirModificar(\''+idEsc+'\')">Modificar</button>'+
+        '<button class="btn small" style="background:var(--danger);color:#fff;" onclick="eliminarActividad(\''+idEsc+'\')">Eliminar</button>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function comentarActividad(id){
+  var a = todasActs.find(function(x){ return String(x.id) === String(id); });
+  var actual = a && a.comentarios ? a.comentarios : '';
+  var c = prompt('Comentario del supervisor:', actual);
+  if(c === null) return;
+  postData({action:'comentarActividad', actividadID:id, comentario:c})
+    .then(function(){ toast('Comentario guardado', 'ok'); loadSupervision(); })
+    .catch(function(err){ toast('Error: ' + err, 'err'); });
+}
+
+function eliminarActividad(id){
+  if(!confirm('¿Eliminar esta actividad? No se puede deshacer.')) return;
+  postData({action:'eliminarActividad', actividadID:id})
+    .then(function(){ toast('Actividad eliminada', 'ok'); loadSupervision(); })
+    .catch(function(err){ toast('Error: ' + err, 'err'); });
+}
+
+function abrirModificar(id){
+  var a = todasActs.find(function(x){ return String(x.id) === String(id); });
+  if(!a) return;
+  modActId = id;
+  document.getElementById('modTitle').textContent = a.descripcion;
+  document.getElementById('mod-descripcion').value = a.descripcion || '';
+  document.getElementById('mod-prioridad').value = a.prioridad || 'media';
+  document.getElementById('mod-unidad').value = a.unidadAsignada || '';
+  document.getElementById('mod-fecha').value = toDateInput(a.fechaProgramada);
+  document.getElementById('mod-horaInicio').value = hhmm(a.horaProgInicio);
+  document.getElementById('mod-horaFin').value = hhmm(a.horaProgFin);
+  openModal('modalModificar');
+}
+
+function guardarModificar(){
+  if(!modActId) return;
+  postData({action:'modificarActividad', actividadID:modActId, descripcion:document.getElementById('mod-descripcion').value.trim(), prioridad:document.getElementById('mod-prioridad').value, unidadAsignada:document.getElementById('mod-unidad').value.trim(), fechaProgramada:document.getElementById('mod-fecha').value, horaProgInicio:document.getElementById('mod-horaInicio').value, horaProgFin:document.getElementById('mod-horaFin').value})
+    .then(function(){ closeModal('modalModificar'); toast('Actividad modificada', 'ok'); loadSupervision(); })
+    .catch(function(err){ toast('Error: ' + err, 'err'); });
 }
 
 // DASHBOARD
