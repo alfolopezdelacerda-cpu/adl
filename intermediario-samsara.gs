@@ -297,8 +297,14 @@ function enviarEventosANstech(listaEventos) {
     muteHttpExceptions: true
   });
 
-  Logger.log("[" + AMBIENTE + "] Eventos: Respuesta " + envio.getResponseCode() +
-             ": " + envio.getContentText());
+  const resumen = "URL: " + N.eventsUrl +
+                  "\nCódigo: " + envio.getResponseCode() +
+                  "\nRespuesta: " + envio.getContentText();
+
+  // Guardamos la respuesta de NSTech para poder revisarla después.
+  PropertiesService.getScriptProperties().setProperty("ULTIMA_RESPUESTA_EVENTO", resumen);
+
+  Logger.log("[" + AMBIENTE + "] Eventos ->\n" + resumen);
   return envio;
 }
 
@@ -450,7 +456,9 @@ function verUltimoEventoEnviado() {
     Logger.log("Todavía no se ha enviado ningún evento a NSTech.");
     return;
   }
-  Logger.log("===== ÚLTIMO EVENTO ENVIADO A NSTECH (" + AMBIENTE + ") =====\n" + ultimo);
+  const respuesta = PropertiesService.getScriptProperties().getProperty("ULTIMA_RESPUESTA_EVENTO");
+  Logger.log("===== ÚLTIMO EVENTO ENVIADO A NSTECH (" + AMBIENTE + ") =====\n" + ultimo +
+             "\n\n===== RESPUESTA DE NSTECH =====\n" + (respuesta || "(sin registro)"));
 }
 
 // Muestra el ÚLTIMO aviso (webhook) que Samsara envió a este script.
